@@ -30,57 +30,57 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 30),
 
                   // --- B. ONGOING TASKS HEADER ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Ongoing Tasks",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          "View All",
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  //   children: [
+                  //     const Text(
+                  //       "Ongoing Tasks",
+                  //       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  //     ),
+                  //     TextButton(
+                  //       onPressed: () {},
+                  //       child: Text(
+                  //         "View All",
+                  //         style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
 
                   const SizedBox(height: 10),
 
-                  // --- LISTE HORIZONTALE DES TÂCHES ---
-                  SizedBox(
-                    height: 150, // Hauteur définie pour le scroll horizontal
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      clipBehavior: Clip.none, // Permet aux ombres de ne pas être coupées
-                      children: [
-                        _buildTaskCard(
-                          title: "Mobile UI Kit",
-                          subtitle: "Odama Studio",
-                          progress: 0.76,
-                          timeLeft: "3 Days left",
-                        ),
-                        const SizedBox(width: 16),
-                        _buildTaskCard(
-                          title: "Illustration",
-                          subtitle: "Paperpillar",
-                          progress: 0.45,
-                          timeLeft: "5 Days left",
-                        ),
-                        const SizedBox(width: 16),
-                        _buildTaskCard(
-                          title: "Website Design",
-                          subtitle: "Freelance",
-                          progress: 0.20,
-                          timeLeft: "9 Days left",
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
+                  // // --- LISTE HORIZONTALE DES TÂCHES ---
+                  // SizedBox(
+                  //   height: 150, // Hauteur définie pour le scroll horizontal
+                  //   child: ListView(
+                  //     scrollDirection: Axis.horizontal,
+                  //     clipBehavior: Clip.none, // Permet aux ombres de ne pas être coupées
+                  //     children: [
+                  //       _buildTaskCard(
+                  //         title: "Mobile UI Kit",
+                  //         subtitle: "Odama Studio",
+                  //         progress: 0.76,
+                  //         timeLeft: "3 Days left",
+                  //       ),
+                  //       const SizedBox(width: 16),
+                  //       _buildTaskCard(
+                  //         title: "Illustration",
+                  //         subtitle: "Paperpillar",
+                  //         progress: 0.45,
+                  //         timeLeft: "5 Days left",
+                  //       ),
+                  //       const SizedBox(width: 16),
+                  //       _buildTaskCard(
+                  //         title: "Website Design",
+                  //         subtitle: "Freelance",
+                  //         progress: 0.20,
+                  //         timeLeft: "9 Days left",
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+                  //
+                  // const SizedBox(height: 30),
 
                   // --- C. CATEGORY HEADER ---
                   Row(
@@ -107,6 +107,28 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       Expanded(
                           child: _buildCategoryCard(
+                              "Total Books",
+                              "2 Books",
+                              Colors.orangeAccent,
+                              Icons.collections_bookmark_sharp
+                          )
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                          child: _buildCategoryCard(
+                              "Finished",
+                              "19 Books",
+                              Colors.blueAccent,
+                              Icons.done_outline_sharp
+                          )
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _buildCategoryCard(
                               "Reading",
                               "2 Books",
                               Colors.orangeAccent,
@@ -116,7 +138,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 16),
                       Expanded(
                           child: _buildCategoryCard(
-                              "Finished",
+                              "To read",
                               "19 Books",
                               Colors.blueAccent,
                               Icons.book
@@ -125,7 +147,8 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 40), // Marge finale pour le scroll
+                  const SizedBox(height: 40),
+
                 ],
               ),
             ),

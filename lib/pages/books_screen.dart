@@ -11,7 +11,8 @@ class MyBooksScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // ================= FEATURED BOOKS =================
+          // ================= FEATURED BOOKS (HAUT) =================
+          // Ici le cœur reste SUR la photo
           const Text(
             'Featured Books',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -25,22 +26,50 @@ class MyBooksScreen extends StatelessWidget {
               itemCount: featuredBooks.length,
               separatorBuilder: (_, __) => const SizedBox(width: 16),
               itemBuilder: (context, index) {
-                return Container(
-                  width: 130,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/test.jpg'),
-                      fit: BoxFit.cover,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.shade300,
-                        blurRadius: 8,
-                        offset: const Offset(2, 4),
+                return Stack(
+                  children: [
+                    // Image
+                    Container(
+                      width: 130,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/test.jpg'),
+                          fit: BoxFit.cover,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.shade300,
+                            blurRadius: 8,
+                            offset: const Offset(2, 4),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    // Bouton Favori (Sur l'image)
+                    Positioned(
+                      bottom: 10,
+                      right: 10,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.favorite,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -69,7 +98,8 @@ class MyBooksScreen extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-          // ================= RECENTLY ADDED =================
+          // ================= RECENTLY ADDED (BAS) =================
+          // Ici le cœur est À DROITE de la carte
           const Text(
             'Recently Added',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -83,11 +113,12 @@ class MyBooksScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final book = recentBooks[index];
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 1. IMAGE (Sans Stack, simple image)
                     Container(
                       height: 120,
                       width: 80,
@@ -99,7 +130,10 @@ class MyBooksScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 16),
+
+                    // 2. TEXTE (Au milieu)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,6 +161,16 @@ class MyBooksScreen extends StatelessWidget {
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                         ],
+                      ),
+                    ),
+
+                    // 3. BOUTON FAVORI (Tout à droite)
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.favorite, // Cœur plein rouge
+                        color: Colors.red,
+                        size: 24,
                       ),
                     ),
                   ],
@@ -158,12 +202,12 @@ class MyBooksScreen extends StatelessWidget {
   }
 }
 
-// ================= DATA (ASSETS ONLY) =================
+// ================= DATA =================
 
 final List<String> featuredBooks = [
   'assets/images/test.jpg',
-  'assets/images/logo.png',
-  'assets/images/accent.png',
+  'assets/images/test.png',
+  'assets/images/test.png',
 ];
 
 final List<String> categories = [
@@ -179,18 +223,18 @@ final List<Map<String, String>> recentBooks = [
     'title': 'The Double',
     'author': 'Fyodor Dostoyevsky',
     'description': 'The Double centers on a government clerk who goes mad...',
-    'image': 'assets/images/test.jpg',
+    'image': 'assets/images/2.jpg',
   },
   {
     'title': 'The Blazing World',
     'author': 'Margaret Cavendish',
     'description': 'The description of a new world...',
-    'image': 'assets/images/logo.png',
+    'image': 'assets/images/2.jpg',
   },
   {
     'title': 'The Double',
     'author': 'Fyodor Dostoyevsky',
     'description': 'The Double centers on a government clerk who goes mad...',
-    'image': 'assets/images/accent.png',
+    'image': 'assets/images/2.jpg',
   },
 ];

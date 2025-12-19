@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_library/pages/setting.dart';
 
 import 'books_screen.dart';
 import 'home_screen.dart';
@@ -6,7 +7,7 @@ class Layout extends StatefulWidget{
   State<Layout> createState() => _Layout();
 }
 class _Layout extends State<Layout> {
-List<Widget> pages = [HomeScreen()  ,MyBooksScreen() ];
+List<Widget> pages = [HomeScreen()  ,MyBooksScreen(),SettingsScreen() ];
 int index = 0 ;
   @override
   Widget build(BuildContext context) {
