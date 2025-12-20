@@ -1,0 +1,4 @@
+# Flutter / Android build outputs
+build/
+android/.gradle/
+android/app/build/
