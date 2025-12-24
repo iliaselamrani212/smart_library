@@ -42,18 +42,18 @@ class _LayoutState extends State<Layout> {
       // Index 0 : Home (On lui donne la capacité de changer d'onglet)
       HomeScreen(onTabChange: _onItemTapped),
 
-      // Index 1 : My Books
+
       const MyBooksScreen(),
 
-      // Index 2 : Placeholder pour le bouton "+" (Ne sera jamais affiché)
       const SizedBox(),
 
-      // Index 3 : Settings
-      const SettingsScreen(),
 
-      // Index 4 : Profile
-      // (Si vous n'avez pas encore de ProfileScreen, je réutilise Settings ou un texte)
+
+
       const MyQuotesScreen(),
+
+
+      const SettingsScreen(),
     ];
 
     return Scaffold(
@@ -137,16 +137,18 @@ class _LayoutState extends State<Layout> {
 
             // 3. Settings
             const BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'Settings',
+              icon: Icon(Icons.format_quote_outlined),
+              activeIcon: Icon(Icons.format_quote_sharp),
+              label: 'Quotes',
+
             ),
 
             // 4. Profile
             const BottomNavigationBarItem(
-              icon: Icon(Icons.format_quote_outlined),
-              activeIcon: Icon(Icons.format_quote_sharp),
-              label: 'Quotes',
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'Settings',
+
             ),
           ],
         ),

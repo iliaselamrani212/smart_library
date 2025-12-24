@@ -8,7 +8,7 @@ class BookDetailsScreen extends StatefulWidget {
     this.book = const {
       'title': 'Ne le laissez pas entrer',
       'author': 'Lisa Jewell',
-      'image': 'assets/images/logo.jpg', // Vérifiez que votre image est bien là
+      'image': 'assets/images/logo.jpg',
       'rating': '4.1',
       'reviews': '83',
       'category': 'Crime & Thrillers',
@@ -26,26 +26,21 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   bool _isFinished = false;
   bool _isEditingProgress = false;
 
-  // Contrôleur pour gérer le texte du numéro de page
   late TextEditingController _pageController;
 
   @override
   void initState() {
     super.initState();
-    // Conversion sécurisée du nombre de pages
     _totalPages = int.tryParse(widget.book['pages'] ?? '300') ?? 300;
-
-    // Initialisation du champ texte avec la page actuelle (0)
     _pageController = TextEditingController(text: _currentPage.toInt().toString());
   }
 
   @override
   void dispose() {
-    _pageController.dispose(); // Nettoyage propre du contrôleur
+    _pageController.dispose();
     super.dispose();
   }
 
-  // Active le mode édition (déverrouille le cadenas)
   void _enableReading() {
     setState(() {
       _isEditingProgress = true;
@@ -53,11 +48,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     });
   }
 
-  // Sauvegarde la progression et verrouille
   void _saveProgress() {
     setState(() {
       _isEditingProgress = false;
-      // On force la mise à jour du texte pour qu'il soit propre
       _pageController.text = _currentPage.toInt().toString();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,30 +63,27 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     });
   }
 
-  // Marque le livre comme terminé (100%)
   void _markAsFinished() {
     setState(() {
-      _currentPage = _totalPages.toDouble(); // Slider à fond
-      _pageController.text = _totalPages.toString(); // Texte à fond
-      _isEditingProgress = false; // Verrouille
-      _isFinished = true; // État terminé
+      _currentPage = _totalPages.toDouble();
+      _pageController.text = _totalPages.toString();
+      _isEditingProgress = false;
+      _isFinished = true;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Congratulations! You finished the book!"),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.black, // CHANGÉ : Noir au lieu de Bleu
         duration: Duration(seconds: 3),
       ),
     );
   }
 
-  // Fonction appelée quand on écrit manuellement dans le champ
   void _onPageInputChanged(String value) {
     int? newPage = int.tryParse(value);
     if (newPage != null) {
       setState(() {
-        // Vérification des bornes (ne pas dépasser le total ou aller sous 0)
         if (newPage > _totalPages) {
           _currentPage = _totalPages.toDouble();
         } else if (newPage < 0) {
@@ -103,6 +93,42 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         }
       });
     }
+  }
+
+  void _showOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.blue),
+                title: const Text("Modifier"),
+                onTap: () {
+                  Navigator.pop(context);
+                  print("Modifier cliqué");
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text("Supprimer", style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  print("Supprimer cliqué");
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -121,11 +147,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.bookmark_border, color: Colors.black),
-            onPressed: () {},
+            onPressed: _showOptions,
           ),
           IconButton(
             icon: const Icon(Icons.more_horiz, color: Colors.black),
-            onPressed: () {},
+            onPressed: _showOptions,
           ),
         ],
       ),
@@ -137,7 +163,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           children: [
             const SizedBox(height: 10),
 
-            // 1. IMAGE DU LIVRE
+            // 1. IMAGE
             Center(
               child: Container(
                 height: 320,
@@ -161,7 +187,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 30),
 
-            // 2. TITRE ET AUTEUR
+            // 2. TEXTES
             Text(
               widget.book['title']!,
               textAlign: TextAlign.center,
@@ -184,8 +210,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             ),
 
             const SizedBox(height: 12),
-
-            // 3. CATEGORIE
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -198,7 +222,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 10),
 
-            // 4. CARTE INFO (BOUTONS READ / SAVE)
+            // 4. BOUTONS READ / SAVE
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -217,7 +241,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
                   Row(
                     children: [
-                      // BOUTON READ
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: _isEditingProgress ? null : _enableReading,
@@ -231,7 +254,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // BOUTON SAVE
                       Expanded(
                         child: ElevatedButton(
                           onPressed: _isEditingProgress ? _saveProgress : null,
@@ -256,14 +278,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 16),
 
-            // 5. SECTION PROGRESSION (SLIDER + CHAMPS TEXTE)
+            // 5. PROGRESSION
             _isFinished
-                ? const SizedBox() // Cache la section si fini
+                ? const SizedBox()
                 : AnimatedOpacity(
               duration: const Duration(milliseconds: 300),
               opacity: _isEditingProgress ? 1.0 : 0.6,
               child: AbsorbPointer(
-                // Bloque toute interaction si on n'a pas cliqué sur "Read"
                 absorbing: !_isEditingProgress,
                 child: Container(
                   padding: const EdgeInsets.all(20),
@@ -277,7 +298,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // En-tête : "Reading Progress" + Pourcentage
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -304,8 +324,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-
-                      // Slider
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
                           activeTrackColor: Colors.black,
@@ -321,30 +339,20 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                           onChanged: (value) {
                             setState(() {
                               _currentPage = value;
-                              // Synchronisation : on met à jour le texte quand le slider bouge
                               _pageController.text = value.toInt().toString();
                             });
                           },
                         ),
                       ),
-
-                      // Bas de page : Champ de saisie + "of Total"
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
                             children: [
-                              const Text(
-                                "Page ",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              const SizedBox(width: 8), // Petit espace
-
-                              // ------------------------------------------
-                              // LE CHAMP DE SAISIE (KEYBOARD)
-                              // ------------------------------------------
+                              const Text("Page ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              const SizedBox(width: 8),
                               SizedBox(
-                                width: 70, // Un peu plus large pour être confortable
+                                width: 70,
                                 height: 35,
                                 child: TextField(
                                   controller: _pageController,
@@ -354,7 +362,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                   style: const TextStyle(fontWeight: FontWeight.bold),
                                   decoration: InputDecoration(
                                     filled: true,
-                                    fillColor: Colors.white, // Fond blanc pour dire "écris ici"
+                                    fillColor: Colors.white,
                                     contentPadding: const EdgeInsets.only(bottom: 10),
                                     isDense: true,
                                     border: OutlineInputBorder(
@@ -368,13 +376,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                   ),
                                 ),
                               ),
-                              // ------------------------------------------
                             ],
                           ),
-                          Text(
-                            "of $_totalPages",
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                          ),
+                          Text("of $_totalPages", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
                         ],
                       ),
                     ],
@@ -385,13 +389,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 20),
 
-            // 6. BOUTON MARK AS FINISHED
+            // 6. BOUTON FINISHED (MODIFIÉ ICI)
             Center(
               child: ElevatedButton(
                 onPressed: _isFinished ? null : _markAsFinished,
                 style: ElevatedButton.styleFrom(
                   disabledBackgroundColor: Colors.grey.shade300,
-                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  backgroundColor: Colors.black, // CHANGÉ : Noir pour le thème
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   elevation: 0,
@@ -401,7 +405,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Colors.white, // CHANGÉ : Blanc sur fond noir
                   ),
                 ),
               ),

@@ -140,24 +140,7 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
 
             const SizedBox(height: 30),
 
-            // 4. GROS BOUTON SAVE EN BAS
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _submitData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  elevation: 5,
-                  shadowColor: Colors.black.withOpacity(0.3),
-                ),
-                child: const Text(
-                  "Save Note",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+
           ],
         ),
       ),
