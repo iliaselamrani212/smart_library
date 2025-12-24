@@ -25,7 +25,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
   // State Variables
   String _readingStatus = 'To Read';
-  File? _selectedImage;
+  dynamic _selectedImage; // Changed to dynamic to accommodate both File and String
   bool _isFavorite = false;
 
   final List<String> _statusOptions = ['To Read', 'Reading', 'Finished'];
@@ -56,10 +56,16 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _authorController.text = (book['authors'] != null && book['authors'].isNotEmpty) ? book['authors'].join(', ') : '';
               _yearController.text = book['publishedDate']?.split('-')[0] ?? '';
               _categoryController.text = (book['categories'] != null && book['categories'].isNotEmpty) ? book['categories'][0] : '';
+              _noteController.text = book['description'] ?? '';
+
+              // Fetch and set the book's thumbnail image
+              if (book['imageLinks'] != null && book['imageLinks']['thumbnail'] != null) {
+                _selectedImage = book['imageLinks']['thumbnail'];
+              }
             });
 
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Book data fetched successfully!"), backgroundColor: Colors.green),
+              const SnackBar(content: Text("Book data added to the form!"), backgroundColor: Colors.green),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -212,21 +218,26 @@ class _AddBookScreenState extends State<AddBookScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.shade300),
                       image: _selectedImage != null
-                          ? DecorationImage(
-                        image: FileImage(_selectedImage!),
-                        fit: BoxFit.cover,
-                      )
+                          ? (_selectedImage is String && _selectedImage.startsWith('http')
+                              ? DecorationImage(
+                                  image: NetworkImage(_selectedImage),
+                                  fit: BoxFit.cover,
+                                )
+                              : DecorationImage(
+                                  image: FileImage(File(_selectedImage)),
+                                  fit: BoxFit.cover,
+                                ))
                           : null,
                     ),
                     child: _selectedImage == null
                         ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
-                        SizedBox(height: 8),
-                        Text("Add Cover", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    )
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text("Add Cover", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            ],
+                          )
                         : null,
                   ),
                 ),
@@ -282,7 +293,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
               const SizedBox(height: 20),
 
-              _buildLabel("Personal Note"),
+              _buildLabel("Description"),
               _buildTextField(
                   _noteController,
                   "Write your thoughts here...",
@@ -440,18 +451,37 @@ class _AddBookScreenState extends State<AddBookScreen> {
 // ==========================================
 // ECRAN DE SCAN SÉPARÉ (Toujours nécessaire)
 // ==========================================
-class BarcodeScannerScreen extends StatelessWidget {
+class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
+
+  @override
+  State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
+}
+
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+  late final MobileScannerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      returnImage: false,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose(); // Properly dispose of the scanner controller
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan ISBN')),
       body: MobileScanner(
-        controller: MobileScannerController(
-          detectionSpeed: DetectionSpeed.noDuplicates,
-          returnImage: false,
-        ),
+        controller: _controller,
         onDetect: (capture) {
           final List<Barcode> barcodes = capture.barcodes;
           for (final barcode in barcodes) {
