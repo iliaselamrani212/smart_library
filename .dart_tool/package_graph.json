@@ -10,7 +10,9 @@
         "cupertino_icons",
         "fl_chart",
         "flutter",
+        "flutter_barcode_scanner",
         "google_fonts",
+        "google_mlkit_text_recognition",
         "http",
         "image_picker",
         "intl",
@@ -29,7 +31,7 @@
     },
     {
       "name": "flutter_lints",
-      "version": "5.0.0",
+      "version": "6.0.0",
       "dependencies": [
         "lints"
       ]
@@ -54,25 +56,28 @@
     },
     {
       "name": "mobile_scanner",
-      "version": "5.2.3",
+      "version": "7.1.4",
       "dependencies": [
+        "collection",
         "flutter",
         "flutter_web_plugins",
+        "meta",
         "plugin_platform_interface",
         "web"
       ]
     },
     {
       "name": "fl_chart",
-      "version": "0.68.0",
+      "version": "1.1.1",
       "dependencies": [
         "equatable",
-        "flutter"
+        "flutter",
+        "vector_math"
       ]
     },
     {
       "name": "intl",
-      "version": "0.18.1",
+      "version": "0.20.2",
       "dependencies": [
         "clock",
         "meta",
@@ -81,7 +86,7 @@
     },
     {
       "name": "table_calendar",
-      "version": "3.0.9",
+      "version": "3.2.0",
       "dependencies": [
         "flutter",
         "intl",
@@ -123,16 +128,6 @@
       ]
     },
     {
-      "name": "http",
-      "version": "1.6.0",
-      "dependencies": [
-        "async",
-        "http_parser",
-        "meta",
-        "web"
-      ]
-    },
-    {
       "name": "path",
       "version": "1.9.1",
       "dependencies": []
@@ -165,6 +160,32 @@
       "dependencies": []
     },
     {
+      "name": "google_mlkit_text_recognition",
+      "version": "0.15.0",
+      "dependencies": [
+        "flutter",
+        "google_mlkit_commons"
+      ]
+    },
+    {
+      "name": "http",
+      "version": "1.6.0",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "flutter_barcode_scanner",
+      "version": "2.0.0",
+      "dependencies": [
+        "flutter",
+        "flutter_plugin_android_lifecycle"
+      ]
+    },
+    {
       "name": "image_picker",
       "version": "1.2.1",
       "dependencies": [
@@ -192,7 +213,7 @@
     },
     {
       "name": "lints",
-      "version": "5.1.1",
+      "version": "6.0.0",
       "dependencies": []
     },
     {
@@ -403,24 +424,6 @@
       ]
     },
     {
-      "name": "http_parser",
-      "version": "4.1.2",
-      "dependencies": [
-        "collection",
-        "source_span",
-        "string_scanner",
-        "typed_data"
-      ]
-    },
-    {
-      "name": "async",
-      "version": "2.13.0",
-      "dependencies": [
-        "collection",
-        "meta"
-      ]
-    },
-    {
       "name": "nested",
       "version": "1.0.0",
       "dependencies": [
@@ -483,6 +486,38 @@
       "dependencies": [
         "flutter",
         "shared_preferences_platform_interface"
+      ]
+    },
+    {
+      "name": "google_mlkit_commons",
+      "version": "0.11.0",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "http_parser",
+      "version": "4.1.2",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
+      ]
+    },
+    {
+      "name": "async",
+      "version": "2.13.0",
+      "dependencies": [
+        "collection",
+        "meta"
+      ]
+    },
+    {
+      "name": "flutter_plugin_android_lifecycle",
+      "version": "2.0.33",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -706,13 +741,6 @@
       "name": "mime",
       "version": "2.0.0",
       "dependencies": []
-    },
-    {
-      "name": "flutter_plugin_android_lifecycle",
-      "version": "2.0.33",
-      "dependencies": [
-        "flutter"
-      ]
     },
     {
       "name": "vm_service",

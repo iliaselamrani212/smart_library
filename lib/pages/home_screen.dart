@@ -307,7 +307,7 @@ class CategoryBarChart extends StatelessWidget {
                           case 4: text = 'His'; break;
                           default: text = '';
                         }
-                        return SideTitleWidget(axisSide: meta.axisSide, child: Text(text, style: style));
+                        return SideTitleWidget(meta: meta, child: Text(text, style: style));
                       },
                     ),
                   ),
