@@ -1,22 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:smart_library/models/books_model.dart';
 
 import 'MyQuotesScreen.dart';
 import 'layout.dart';
 
 class BookDetailsScreen extends StatefulWidget {
-  final Map<String, String> book;
+  // On remplace le Map<String, String> par le modèle Book
+  final Book? book; 
 
+  // On peut garder le constructeur actuel pour compatibilité mais on l'adapte
   const BookDetailsScreen({
     Key? key,
-    this.book = const {
-      'title': 'Ne le laissez pas entrer',
-      'author': 'Lisa Jewell',
-      'image': 'assets/images/logo.jpg',
-      'rating': '4.1',
-      'reviews': '83',
-      'category': 'Crime & Thrillers',
-      'pages': '448',
-    },
+    this.book, // Désormais optionnel, si null on affichera des données par défaut
   }) : super(key: key);
 
   @override
@@ -34,7 +30,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _totalPages = int.tryParse(widget.book['pages'] ?? '300') ?? 300;
+    // On utilise les données réelles du livre ou une valeur par défaut
+    // Le modèle Book actuel n'a pas de champ 'pages' ni 'category'
+    // Vous devriez probablement ajouter ces champs au modèle Book dans le futur
+    _totalPages = 300; // Valeur par défaut car pas dans le modèle Book
     _pageController = TextEditingController(text: _currentPage.toInt().toString());
   }
 
@@ -136,7 +135,25 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    int id_page;
+    // Si aucun livre n'est passé (ce qui ne devrait pas arriver si on navigue correctement), on met un placeholder
+    final title = widget.book?.title ?? "No Title";
+    final authors = (widget.book?.authors != null && widget.book!.authors.isNotEmpty) 
+        ? widget.book!.authors.join(', ') 
+        : "Unknown Author";
+    final description = widget.book?.description ?? "No description available.";
+    
+    // Gestion de l'image
+    ImageProvider imageProvider;
+    if (widget.book != null && widget.book!.thumbnail.isNotEmpty) {
+      if (widget.book!.thumbnail.startsWith('http')) {
+        imageProvider = NetworkImage(widget.book!.thumbnail);
+      } else {
+        imageProvider = FileImage(File(widget.book!.thumbnail));
+      }
+    } else {
+      imageProvider = const AssetImage('assets/images/placeholder.png');
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -181,8 +198,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       offset: const Offset(0, 10),
                     ),
                   ],
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/femme.jpg'),
+                  image: DecorationImage(
+                    image: imageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -193,7 +210,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             // 2. TEXTES
             Text(
-              widget.book['title']!,
+              title,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 24,
@@ -204,7 +221,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              "${widget.book['author']} & Adèle Rolland-Le Dem >",
+              authors,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -218,7 +235,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  widget.book['category']!,
+                  "Thriller", // Catégorie hardcodée car manquante dans le modèle
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
               ],
@@ -238,9 +255,19 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 children: [
                   const SizedBox(height: 8),
                   Text(
-                    "French • 5 November 2025 • $_totalPages Pages",
+                    "$_totalPages Pages",
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
+                  const SizedBox(height: 20),
+                  
+                  // Description courte si disponible
+                  Text(
+                    description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                  
                   const SizedBox(height: 20),
 
                   Row(

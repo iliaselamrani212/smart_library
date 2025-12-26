@@ -1,4 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_library/providers/my_books_provider.dart';
+import 'package:smart_library/providers/user_provider.dart';
+import 'package:smart_library/models/books_model.dart';
 import 'book_datails_screen.dart'; // Assurez-vous que ce fichier existe
 
 class MyBooksScreen extends StatefulWidget {
@@ -12,262 +18,301 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
   // Variables pour stocker les choix de filtres
   String _selectedStatus = 'All';
   String _selectedSort = 'Newest';
-  String _selectedAuthor = 'All'; // NOUVEAU : Variable pour l'auteur
-  bool new_b = true ;
+  String _selectedAuthor = 'All'; 
+  
+  @override
+  void initState() {
+    super.initState();
+    // Charger les livres au démarrage de l'écran
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       final userProvider = Provider.of<UserProvider>(context, listen: false);
+       final userId = userProvider.currentUser?.usrId ?? 1; // Fallback ID for testing
+       Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
+    });
+  }
 
   // Fonction pour extraire les auteurs uniques de la liste de livres
-  List<String> get _uniqueAuthors {
-    final authors = recentBooks.map((book) => book['author']!).toSet().toList();
-    return ['All', ...authors]; // On ajoute 'All' au début
+  List<String> getUniqueAuthors(List<Book> books) {
+    final authors = books.expand((book) => book.authors).map((a) => a.toString()).toSet().toList();
+    return ['All', ...authors];
   }
 
   @override
   Widget build(BuildContext context) {
+    // Consommer le provider
+    final myBooksProvider = Provider.of<MyBooksProvider>(context);
+    // On inverse la liste pour afficher les derniers ajouts en premier (si l'ID est chronologique)
+    // Ou mieux, on s'assure que l'ajout se fait en fin de liste et on affiche la liste inversée
+    final allBooks = myBooksProvider.myBooks.reversed.toList();
+    final isLoading = myBooksProvider.isLoading;
+
+    // TODO: Implémenter le filtrage réel ici si besoin avec _selectedStatus, etc.
+    // Pour l'instant on affiche tout ou on filtre basiquement
+    List<Book> filteredBooks = allBooks;
+    if (_selectedAuthor != 'All') {
+      filteredBooks = filteredBooks.where((book) => book.authors.contains(_selectedAuthor)).toList();
+    }
+    // Ajoutez d'autres logiques de tri/filtrage ici...
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-              // ================= FEATURED BOOKS =================
-              const Text(
-                'Featured Books',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
+                // ================= FEATURED BOOKS =================
+                const Text(
+                  'Featured Books',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2937),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              SizedBox(
-                height: 200,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: featuredBooks.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 16),
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        GestureDetector(
-                          child: Container(
-                            width: 130,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              image: DecorationImage(
-                                image: AssetImage('assets/images/test.jpg'),
-                                fit: BoxFit.cover,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                SizedBox(
+                  height: 200,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: featuredBooks.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          GestureDetector(
+                            child: Container(
+                              width: 130,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                image: DecorationImage(
+                                  image: AssetImage('assets/images/test.jpg'),
+                                  fit: BoxFit.cover,
                                 ),
-                              ],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => BookDetailsScreen()));
+                            },
+                          ),
+                          Positioned(
+                            bottom: 10,
+                            right: 10,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.favorite,
+                                color: Color(0xFFFF4757),
+                                size: 20,
+                              ),
                             ),
                           ),
-                          onTap: () {
+                        ],
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // ================= CATEGORIES =================
+                const Text(
+                  'Categories',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  height: 44,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      return _categoryChip(categories[index]);
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // ================= RECENTLY ADDED + FILTER BUTTON =================
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Recently Added',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+
+                    // --- BOUTON FILTRE ---
+                    Container(
+                      height: 40,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.tune_rounded),
+                        color: const Color(0xFF1F2937),
+                        onPressed: () {
+                          _showFilterModal(context, allBooks);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Feedback visuel des filtres actifs
+                if (_selectedStatus != 'All' || _selectedSort != 'Newest' || _selectedAuthor != 'All')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      'Filtering by: $_selectedStatus • $_selectedAuthor • $_selectedSort',
+                      style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
+
+                // Liste des livres
+                filteredBooks.isEmpty 
+                  ? const Center(child: Text("No books found. Add one!"))
+                  : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filteredBooks.length,
+                    itemBuilder: (context, index) {
+                      final book = filteredBooks[index];
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: GestureDetector(
+                           onTap: () {
                             Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => BookDetailsScreen()));
-                          },
-                        ),
-                        Positioned(
-                          bottom: 10,
-                          right: 10,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.favorite,
-                              color: Color(0xFFFF4757),
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ================= CATEGORIES =================
-              const Text(
-                'Categories',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              SizedBox(
-                height: 44,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) {
-                    return _categoryChip(categories[index]);
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ================= RECENTLY ADDED + FILTER BUTTON =================
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recently Added',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-
-                  // --- BOUTON FILTRE ---
-                  Container(
-                    height: 40,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.tune_rounded),
-                      color: const Color(0xFF1F2937),
-                      onPressed: () {
-                        _showFilterModal(context);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-
-              // Feedback visuel des filtres actifs
-              if (_selectedStatus != 'All' || _selectedSort != 'Newest' || _selectedAuthor != 'All')
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Filtering by: $_selectedStatus • $_selectedAuthor • $_selectedSort',
-                    style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-
-              const SizedBox(height: 16),
-
-              // Liste des livres
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: recentBooks.length,
-                itemBuilder: (context, index) {
-                  final book = recentBooks[index];
-
-                  // NOTE: Ici, vous pouvez ajouter la logique réelle pour masquer les livres
-                  // si l'auteur sélectionné ne correspond pas. Pour l'instant, on affiche tout.
-                  // Ex: if (_selectedAuthor != 'All' && book['author'] != _selectedAuthor) return Container();
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          height: 120,
-                          width: 80,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              image: DecorationImage(
-                                image: AssetImage(book['image']!),
-                                fit: BoxFit.cover,
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookDetailsScreen(book: book),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 5,
-                                ),
-                              ]),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
+                            );
+                          },
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                book['title']!,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF111827),
+                              Container(
+                                height: 120,
+                                width: 80,
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(
+                                      image: (book.thumbnail.isNotEmpty && !book.thumbnail.startsWith('http')) 
+                                          ? FileImage(File(book.thumbnail)) as ImageProvider
+                                          : (book.thumbnail.isNotEmpty && book.thumbnail.startsWith('http')) 
+                                            ? NetworkImage(book.thumbnail) 
+                                            : const AssetImage('assets/images/test.jpg'), // Fallback
+                                      fit: BoxFit.cover,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 5,
+                                      ),
+                                    ]),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      book.title,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF111827),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      book.authors.join(', '),
+                                      style: const TextStyle(
+                                        color: Color(0xFF4F46E5),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      book.description,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.blueGrey.shade400,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                book['author']!,
-                                style: const TextStyle(
-                                  color: Color(0xFF4F46E5),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                book['description']!,
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.blueGrey.shade400,
-                                  height: 1.4,
+                              IconButton(
+                                onPressed: () {},
+                                icon: const Icon(
+                                  Icons.favorite,
+                                  color: Color(0xFFFF4757),
+                                  size: 24,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(
-                            Icons.favorite,
-                            color: Color(0xFFFF4757),
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
-        ),
       ),
     );
   }
 
   // ================= BOITE DE DIALOGUE FILTRE =================
-  void _showFilterModal(BuildContext context) {
+  void _showFilterModal(BuildContext context, List<Book> books) {
     // On récupère la liste des auteurs au moment d'ouvrir la modale
-    final authorsList = _uniqueAuthors;
+    final authorsList = getUniqueAuthors(books);
 
     showModalBottomSheet(
       context: context,
@@ -482,25 +527,4 @@ final List<String> categories = [
   'Action',
   'Romance',
   'Fantasy',
-];
-
-final List<Map<String, String>> recentBooks = [
-  {
-    'title': 'The Double',
-    'author': 'Fyodor Dostoyevsky',
-    'description': 'The Double centers on a government clerk who goes mad...',
-    'image': 'assets/images/2.jpg',
-  },
-  {
-    'title': 'The Blazing World',
-    'author': 'Margaret Cavendish',
-    'description': 'The description of a new world...',
-    'image': 'assets/images/2.jpg',
-  },
-  {
-    'title': 'The Double',
-    'author': 'Fyodor Dostoyevsky',
-    'description': 'The Double centers on a government clerk who goes mad...',
-    'image': 'assets/images/2.jpg',
-  },
 ];

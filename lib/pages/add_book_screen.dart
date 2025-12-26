@@ -4,6 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:smart_library/models/books_model.dart';
+import 'package:smart_library/providers/my_books_provider.dart';
+import 'package:smart_library/providers/user_provider.dart';
+import 'package:smart_library/providers/favorites_provider.dart';
 
 class AddBookScreen extends StatefulWidget {
   const AddBookScreen({super.key});
@@ -123,17 +128,57 @@ class _AddBookScreenState extends State<AddBookScreen> {
     );
   }
 
-  void _saveBook() {
+  void _saveBook() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(_isFavorite
-                ? 'Book added to Favorites!'
-                : 'Book added successfully!'),
-            backgroundColor: Colors.green
-        ),
-      );
-      Navigator.pop(context);
+      try {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        // Fallback user ID 1 if not logged in (for testing purposes)
+        final userId = userProvider.currentUser?.usrId ?? 1;
+
+        String imagePath = '';
+        if (_selectedImage is File) {
+          imagePath = (_selectedImage as File).path;
+        } else if (_selectedImage is String) {
+          imagePath = _selectedImage;
+        }
+
+        final newBook = Book(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: _titleController.text,
+          authors: _authorController.text.split(',').map((e) => e.trim()).toList(),
+          thumbnail: imagePath,
+          description: _noteController.text,
+        );
+
+        // Add to My Books
+        await Provider.of<MyBooksProvider>(context, listen: false).addBook(newBook, userId);
+
+        // Add to Favorites if selected
+        if (_isFavorite) {
+           final favProvider = Provider.of<FavoriteBooksProvider>(context, listen: false);
+           // Ensure fav provider knows current user
+           favProvider.setCurrentUserId(userId);
+           await favProvider.addFavorite(newBook);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(_isFavorite
+                    ? 'Book added to Library & Favorites!'
+                    : 'Book added to Library successfully!'),
+                backgroundColor: Colors.green
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error saving book: $e"), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
@@ -224,7 +269,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                                   fit: BoxFit.cover,
                                 )
                               : DecorationImage(
-                                  image: FileImage(File(_selectedImage)),
+                                  image: FileImage(File(_selectedImage.path ?? _selectedImage)),
                                   fit: BoxFit.cover,
                                 ))
                           : null,
