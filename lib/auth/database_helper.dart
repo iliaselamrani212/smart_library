@@ -8,15 +8,15 @@ class DatabaseHelper{
 
   //Tables
 
+// Update this string in your Tables section
   String user = '''
-   CREATE TABLE users (
-   usrId INTEGER PRIMARY KEY AUTOINCREMENT,
-   fullName TEXT,
-   email TEXT,
-   usrName TEXT UNIQUE,
-   usrPassword TEXT
-   )
-   ''';
+    CREATE TABLE users (
+    usrId INTEGER PRIMARY KEY AUTOINCREMENT,
+    fullName TEXT,
+    email TEXT UNIQUE,
+    usrPassword TEXT
+  )
+''';
 
      String mybooks = '''
    CREATE TABLE mybooks (
@@ -54,31 +54,68 @@ class DatabaseHelper{
    )
    ''';
 
+String notesTable = '''
+  CREATE TABLE notes (
+    noteId INTEGER PRIMARY KEY AUTOINCREMENT,
+    usrId INTEGER,
+    bookTitle TEXT,
+    pageNumber TEXT,
+    noteText TEXT,
+    date TEXT,
+    FOREIGN KEY (usrId) REFERENCES users(usrId)
+  )
+''';
+
+
+// 3. Add these functions to handle Notes
+Future<int> insertNote(Map<String, dynamic> note) async {
+  final Database db = await initDB();
+  return await db.insert("notes", note);
+}
+
+Future<List<Map<String, dynamic>>> getNotes(int usrId) async {
+  final Database db = await initDB();
+  return await db.query("notes", where: "usrId = ?", whereArgs: [usrId]);
+}
+
+Future<int> deleteNote(int noteId) async {
+  final Database db = await initDB();
+  return await db.delete("notes", where: "noteId = ?", whereArgs: [noteId]);
+}
 
   //Create a connection to the database
-  Future<Database> initDB ()async{
+Future<Database> initDB ()async{
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, databaseName);
 
-    return openDatabase(path,version: 1 , onCreate: (db,version)async{
+    return openDatabase(path, version: 1, onCreate: (db, version) async {
       await db.execute(user);
       await db.execute(favorites);
       await db.execute(mybooks);
+      await db.execute(notesTable); // <--- YOU MUST ADD THIS LINE
     });
   }
 
   //Function
 
   //Authentication
-  Future<bool> authenticate(Users usr)async{
-    final Database db = await initDB();
-    var result = await db.rawQuery("select * from users where usrName = '${usr.usrName}' AND usrPassword = '${usr.password}' ");
-    if(result.isNotEmpty){
-      return true;
-    }else{
-      return false;
-    }
-  }
+ // Authentication using Email instead of Username
+Future<bool> authenticate(Users usr) async {
+  final Database db = await initDB();
+  // Changed usrName to email
+  var result = await db.rawQuery(
+      "SELECT * FROM users WHERE email = ? AND usrPassword = ?",
+      [usr.email, usr.password] // Using parameterized queries for security
+  );
+  return result.isNotEmpty;
+}
+
+// Get User details by Email
+Future<Users?> getUser(String email) async {
+  final Database db = await initDB();
+  var res = await db.query("users", where: "email = ?", whereArgs: [email]);
+  return res.isNotEmpty ? Users.fromMap(res.first) : null;
+}
 
   //Sign up
   Future<int> createUser(Users usr)async{
@@ -87,13 +124,7 @@ class DatabaseHelper{
   }
 
 
-  //Get current User details
-  //bach ndiro check ila kan luser exist or no
-  Future<Users?> getUser(String usrName)async{
-    final Database db = await initDB();
-    var res = await db.query("users",where: "usrName = ?", whereArgs: [usrName]);
-    return res.isNotEmpty? Users.fromMap(res.first):null;
-  }
+ 
 
   // Insert a book into favorites
   Future<int> insertFavorite(Book book, int usrId) async {

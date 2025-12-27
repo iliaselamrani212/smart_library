@@ -1,5 +1,9 @@
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_library/auth/validators.dart';
+import 'package:smart_library/models/user_model.dart';
+import 'package:smart_library/pages/layout.dart';
+import 'package:smart_library/providers/user_provider.dart';
 
 import '../theme/theme.dart';
 import '../widgets/input_field.dart';
@@ -11,11 +15,14 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController(text: '');
-  final TextEditingController passwordController =
-  TextEditingController(text: '');
+  // 1. Define the GlobalKey for validation
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool passwordVisible = false;
+
   void togglePassword() {
     setState(() {
       passwordVisible = !passwordVisible;
@@ -25,11 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      // Allow scrolling when the keyboard appears
+      resizeToAvoidBottomInset: true, 
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(24.0,100.0, 24.0, 0),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24.0, 80.0, 24.0, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -40,9 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Login to your\naccount',
                     style: heading2.copyWith(color: textBlack),
                   ),
-                  SizedBox(
-                    height: 20,
-                  ),
+                  SizedBox(height: 20),
                   Image.asset(
                     'assets/images/accent.png',
                     width: 99,
@@ -50,27 +56,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-              SizedBox(
-                height: 48,
-              ),
+              SizedBox(height: 48),
+
+              // 2. Wrap input fields in a Form widget
               Form(
+                key: _formKey,
                 child: Column(
                   children: [
                     InputField(
-                      hintText: 'Email',
-                      suffixIcon: SizedBox(),
+                      hintText: 'Username', // Changed to Username as per your UserProvider
                       controller: emailController,
+                      validator: Validators.validateUserName, // Applied validator
                     ),
-                    SizedBox(
-                      height: 32,
-                    ),
+                    SizedBox(height: 32),
                     InputField(
                       hintText: 'Password',
                       controller: passwordController,
                       obscureText: !passwordVisible,
+                      validator: Validators.validatePassword, // Applied validator
                       suffixIcon: IconButton(
                         color: textGrey,
-                        splashRadius: 1,
                         icon: Icon(passwordVisible
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined),
@@ -80,52 +85,61 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-              SizedBox(
-                height: 32,
-              ),
-              SizedBox(
-                height: 32,
-              ),
+              SizedBox(height: 64),
 
               CustomPrimaryButton(
                 buttonColor: primaryBlue,
                 textValue: 'Login',
                 textColor: Colors.white,
-                onPressed: () {
+                onPressed: () async {
+                  // 3. Trigger Form Validation
+                  if (_formKey.currentState!.validate()) {
+                    
+                    // 4. Call Login from Provider
+                    final userProvider = Provider.of<UserProvider>(context, listen: false);
+                    bool success = await userProvider.login(
+                      emailController.text, 
+                      passwordController.text
+                    );
 
+                    if (success) {
+                      // Login success: Navigate to Layout
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => Layout()),
+                        (route) => false,
+                      );
+                    } else {
+                      // Login fail: Show error
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Invalid Username or Password"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
-              SizedBox(
-                height: 24,
-              ),
-              SizedBox(
-                height: 24,
-              ),
-              SizedBox(
-                height: 24,
-              ),
-              SizedBox(
-                height: 24,
-              ),
+
+              SizedBox(height: 24),
               Center(
                 child: Text(
                   'OR',
                   style: heading6.copyWith(color: textGrey),
                 ),
               ),
-              SizedBox(
-                height: 24,
-              ),
+              SizedBox(height: 24),
 
               CustomPrimaryButton(
                 buttonColor: Color(0xfffbfbfb),
                 textValue: 'Login with Google',
                 textColor: textBlack,
-                onPressed: () {},
+                onPressed: () {
+                  // Logic for Google login would go here
+                },
               ),
-              SizedBox(
-                height: 50,
-              ),
+              SizedBox(height: 50),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -135,7 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context)=>RegisterScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => RegisterScreen()),
+                      );
                     },
                     child: Text(
                       'Register',
@@ -144,32 +161,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+              SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
-    ;
   }
 }
 
 
 
-// create account
+
 class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController nameController = TextEditingController(text: '');
-  final TextEditingController emailController = TextEditingController(text: '');
-  final TextEditingController passwordController =
-  TextEditingController(text: '');
+  // 1. Key to manage form validation
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   bool passwordVisible = false;
-  bool passwordConfrimationVisible = false;
-  bool isChecked = false;
+
   void togglePassword() {
     setState(() {
       passwordVisible = !passwordVisible;
@@ -179,11 +198,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(24.0, 40.0, 24.0, 0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24.0, 40.0, 24.0, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -194,9 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Register new\naccount',
                     style: heading2.copyWith(color: textBlack),
                   ),
-                  SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
                   Image.asset(
                     'assets/images/accent.png',
                     width: 99,
@@ -204,124 +221,117 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ],
               ),
-              SizedBox(
-                height: 48,
-              ),
+              const SizedBox(height: 48),
+              
+              // 2. Form wrapper for validation
               Form(
+                key: _formKey,
                 child: Column(
                   children: [
                     InputField(
                       hintText: 'Name',
                       controller: nameController,
-                      suffixIcon: SizedBox(),
+                      validator: Validators.validateName,
                     ),
-                    SizedBox(
-                      height: 32,
-                    ),
+                    const SizedBox(height: 32),
                     InputField(
                       hintText: 'Email',
                       controller: emailController,
-                      suffixIcon: SizedBox(),
+                      validator: Validators.validateEmail,
                     ),
-                    SizedBox(
-                      height: 32,
-                    ),
+                    const SizedBox(height: 32),
                     InputField(
                       hintText: 'Password',
                       controller: passwordController,
                       obscureText: !passwordVisible,
+                      validator: Validators.validatePassword,
                       suffixIcon: IconButton(
                         color: textGrey,
-                        splashRadius: 1,
-                        icon: Icon(passwordVisible
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(passwordVisible ? Icons.visibility : Icons.visibility_off),
                         onPressed: togglePassword,
                       ),
                     ),
-                    SizedBox(
-                      height: 32,
-                    ),
+                    const SizedBox(height: 32),
                     InputField(
                       hintText: 'Confirm Password',
-                      controller: passwordController,
+                      controller: confirmPasswordController,
                       obscureText: !passwordVisible,
+                      // Pass both current value and original password to compare
+                      validator: (value) => Validators.validateConfirmPassword(value, passwordController.text),
                       suffixIcon: IconButton(
                         color: textGrey,
-                        splashRadius: 1,
-                        icon: Icon(passwordVisible
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(passwordVisible ? Icons.visibility : Icons.visibility_off),
                         onPressed: togglePassword,
                       ),
-                    ),
-                    SizedBox(
-                      height: 32,
                     ),
                   ],
                 ),
               ),
-              SizedBox(
-                height: 32,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+              const SizedBox(height: 32),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'By creating an account, you agree to our',
-                        style: regular16pt.copyWith(color: textGrey),
-                      ),
-                      Text(
-                        'Terms & Conditions',
-                        style: regular16pt.copyWith(color: primaryBlue),
-                      ),
-                    ],
-                  ),
+                  Text('By creating an account, you agree to our', style: regular16pt.copyWith(color: textGrey)),
+                  Text('Terms & Conditions', style: regular16pt.copyWith(color: primaryBlue)),
                 ],
               ),
-              SizedBox(
-                height: 32,
+              const SizedBox(height: 32),
+
+              // 3. Register Button with Logic
+              CustomPrimaryButton(
+                buttonColor: primaryBlue,
+                textValue: 'Register',
+                textColor: Colors.white,
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    // Create user object matching your updated model
+                    final newUser = Users(
+                      fullName: nameController.text,
+                      email: emailController.text,
+                      password: passwordController.text,
+                    );
+                  
+                    // Call Provider to save to DB
+                    final userProvider = Provider.of<UserProvider>(context, listen: false);
+                    bool success = await userProvider.register(newUser);
+                  
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Account created! Please login."), 
+                          backgroundColor: Colors.green
+                        ),
+                      );
+                  
+                      // --- CHANGE THIS LINE FOR EXPLICIT NAVIGATION ---
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                        (route) => false, // This clears the navigation stack
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Failed. Email already exists."), 
+                          backgroundColor: Colors.red
+                        ),
+                      );
+                    }
+                  }
+                  },
               ),
-
-                  CustomPrimaryButton(
-                    buttonColor: primaryBlue,
-                    textValue: 'Register',
-                    textColor: Colors.white,
-                    onPressed: () {
-
-                    },
-                  ),
-
-              SizedBox(
-                height: 50,
-              ),
+              const SizedBox(height: 50),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Already have an account? ",
-                    style: regular16pt.copyWith(color: textGrey),
-                  ),
+                  Text("Already have an account? ", style: regular16pt.copyWith(color: textGrey)),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.pop(
-                        context,
-                      );
-                    },
-                    child: Text(
-                      'Login',
-                      style: regular16pt.copyWith(color: primaryBlue),
-                    ),
+                    onTap: () => Navigator.pop(context),
+                    child: Text('Login', style: regular16pt.copyWith(color: primaryBlue)),
                   ),
                 ],
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

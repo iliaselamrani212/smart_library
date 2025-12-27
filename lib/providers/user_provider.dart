@@ -10,11 +10,11 @@ class UserProvider with ChangeNotifier {
 
   bool get isLoggedIn => _currentUser != null;
 
-  Future<bool> login(String username, String password) async {
-    final user = Users(usrName: username, password: password);
+  Future<bool> login(String email, String password) async {
+    final user = Users(email: email, password: password);
     final isAuthenticated = await _dbHelper.authenticate(user);
     if (isAuthenticated) {
-      _currentUser = await _dbHelper.getUser(username);
+      _currentUser = await _dbHelper.getUser(email);
       notifyListeners();
       return true;
     }

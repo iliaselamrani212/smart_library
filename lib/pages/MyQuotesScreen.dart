@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:provider/provider.dart';
+import 'package:smart_library/auth/database_helper.dart';
+import 'package:smart_library/providers/user_provider.dart';
 import 'AddNoteScreen.dart';
 
 class MyQuotesScreen extends StatefulWidget {
@@ -11,44 +13,24 @@ class MyQuotesScreen extends StatefulWidget {
 }
 
 class _MyQuotesScreenState extends State<MyQuotesScreen> {
-  // Liste des citations
-  final List<Map<String, String>> _quotes = [
-    {
-      'book': "The Silent Patient",
-      'text': "The greatest secret of happiness is to be at peace with oneself.",
-      'page': '42',
-      'date': '22/12/2025'
-    },
-  ];
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // --- MODIFICATION ICI : On utilise la navigation au lieu du Dialog ---
+  // Navigation to the AddNoteScreen
   void _navigateToAddNote() async {
-    // On va vers la page AddNoteScreen et on attend le résultat (await)
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddNoteScreen()),
     );
 
-    // Si on revient avec des données (l'utilisateur a cliqué sur Save)
-    if (result != null && result is Map<String, String>) {
-      setState(() {
-        _quotes.insert(0, result); // Ajoute la nouvelle note en haut de la liste
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Note added successfully!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+    // If result is true, it means a note was saved to the DB
+    if (result == true) {
+      setState(() {}); // This triggers the FutureBuilder to reload the list
     }
   }
 
-  void _deleteQuote(int index) {
-    setState(() {
-      _quotes.removeAt(index);
-    });
+  void _deleteQuote(int noteId) async {
+    await _dbHelper.deleteNote(noteId);
+    setState(() {}); // Refresh the list after deleting
   }
 
   void _copyToClipboard(String text) {
@@ -60,159 +42,166 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Get the current User ID from the Provider
+    final userProvider = context.watch<UserProvider>();
+    final int? userId = userProvider.currentUser?.usrId;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-   
-
-
-      // Le bouton ouvre maintenant la nouvelle page
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToAddNote,
         backgroundColor: Colors.black,
         icon: const Icon(Icons.edit, color: Colors.white),
         label: const Text("Add Note", style: TextStyle(color: Colors.white)),
       ),
+      body: userId == null
+          ? const Center(child: Text("Please log in to see your quotes."))
+          : FutureBuilder<List<Map<String, dynamic>>>(
+              // 2. Fetch notes filtered by this specific User ID
+              future: _dbHelper.getNotes(userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-      body: _quotes.isEmpty
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.library_books, size: 80, color: Colors.grey.shade300),
-            const SizedBox(height: 20),
-            Text(
-              "No quotes saved yet",
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-            ),
-          ],
-        ),
-      )
-          : ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: _quotes.length,
-        itemBuilder: (context, index) {
-          final quote = _quotes[index];
+                final quotes = snapshot.data ?? [];
 
-          return Dismissible(
-            key: UniqueKey(),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.delete, color: Colors.red),
-            ),
-            onDismissed: (direction) => _deleteQuote(index),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // HEADER: BOOK NAME + PAGE NUMBER
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            const Icon(Icons.book, size: 18, color: Colors.black54),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                quote['book']!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                if (quotes.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.format_quote, size: 80, color: Colors.grey.shade300),
+                        const SizedBox(height: 20),
+                        Text(
+                          "No quotes saved yet",
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: quotes.length,
+                  itemBuilder: (context, index) {
+                    final quote = quotes[index];
+
+                    return Dismissible(
+                      key: Key(quote['noteId'].toString()),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) => _deleteQuote(quote['noteId']),
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(
-                          "Page ${quote['page']}",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
+                        child: const Icon(Icons.delete, color: Colors.red),
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // QUOTE TEXT
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.format_quote_rounded, color: Colors.grey, size: 24),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          quote['text']!,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            height: 1.5,
-                            fontFamily: 'Serif',
-                            fontStyle: FontStyle.italic,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 5),
-                  Divider(color: Colors.grey.shade200),
-
-                  // FOOTER
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Added on ${quote['date']}",
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
-                        onPressed: () => _copyToClipboard(quote['text']!),
-                        tooltip: "Copy text",
-                        constraints: const BoxConstraints(),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      child: _buildQuoteCard(quote),
+                    );
+                  },
+                );
+              },
             ),
-          );
-        },
+    );
+  }
+
+  // UI helper for the card design
+  Widget _buildQuoteCard(Map<String, dynamic> quote) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.book, size: 18, color: Colors.black54),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        quote['bookTitle'] ?? 'Unknown Book',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "Page ${quote['pageNumber'] ?? '?'}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.format_quote_rounded, color: Colors.grey, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  quote['noteText'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Divider(color: Colors.grey.shade200),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Added on ${quote['date']}",
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
+                onPressed: () => _copyToClipboard(quote['noteText'] ?? ''),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
-
