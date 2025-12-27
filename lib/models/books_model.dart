@@ -6,6 +6,7 @@ class Book {
   final String description;
   final String category;
   final String status;
+  final int pages; // 1. New Field
 
   Book({
     required this.id,
@@ -15,11 +16,11 @@ class Book {
     required this.description,
     required this.category,
     this.status = 'Not Read',
+    this.pages = 0, // 2. Default value is 0
   });
 
   factory Book.fromMap(Map<String, dynamic> map) {
     return Book(
-      // The ?? ensures that if the value is NULL, it becomes an empty String instead of crashing
       id: map['id']?.toString() ?? '', 
       title: map['title']?.toString() ?? 'No Title', 
       authors: map['authors'] is String 
@@ -28,7 +29,9 @@ class Book {
       thumbnail: map['thumbnail']?.toString() ?? '',
       description: map['description']?.toString() ?? '',
       category: map['category']?.toString() ?? 'General', 
-      status: map['status']?.toString() ?? 'Not Read', 
+      status: map['status']?.toString() ?? 'Not Read',
+      // 3. Database: If column is null, use 0
+      pages: (map['pages'] as int?) ?? 0, 
     );
   }
 
@@ -41,27 +44,31 @@ class Book {
       'description': description,
       'category': category,
       'status': status,
+      'pages': pages, // 4. Save integer to DB
     };
   }
 
   factory Book.fromJson(Map<String, dynamic> json) {
-    final categoryList = json['volumeInfo']['categories'] as List<dynamic>?;
+    final volumeInfo = json['volumeInfo'];
+    final categoryList = volumeInfo['categories'] as List<dynamic>?;
     
     return Book(
       id: json['id'] as String,
-      title: json['volumeInfo']['title'] ?? "No Title",
-      authors: json['volumeInfo']['authors'] ?? ["Unknown Author"],
-      thumbnail: json['volumeInfo']['imageLinks'] != null
-          ? json['volumeInfo']['imageLinks']['thumbnail']
+      title: volumeInfo['title'] ?? "No Title",
+      authors: volumeInfo['authors'] ?? ["Unknown Author"],
+      thumbnail: volumeInfo['imageLinks'] != null
+          ? volumeInfo['imageLinks']['thumbnail']
           : '',
-      description: json['volumeInfo']['description'] ?? '',
+      description: volumeInfo['description'] ?? '',
       category: categoryList != null ? categoryList.join(', ') : 'General',
-      status: 'Not Read', // 3. API books start as 'Not Read'
+      status: 'Not Read',
+      // 5. API: If 'pageCount' is missing, use 0
+      pages: (volumeInfo['pageCount'] as int?) ?? 0, 
     );
   }
 
-  // 6. Added copyWith to easily update only the status
-  Book copyWith({String? status}) {
+  // 6. CopyWith for updates
+  Book copyWith({String? status, int? pages}) {
     return Book(
       id: id,
       title: title,
@@ -70,6 +77,7 @@ class Book {
       description: description,
       category: category,
       status: status ?? this.status,
+      pages: pages ?? this.pages, // Allows updating pages
     );
   }
 }

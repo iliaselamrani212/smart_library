@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smart_library/auth/database_helper.dart';
-import 'package:smart_library/pages/book_datails_screen.dart';
+import 'package:smart_library/pages/book_datails_screen.dart'; // Ensure filename matches exactly
 import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:smart_library/providers/favorites_provider.dart';
@@ -53,18 +52,23 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
   }
 
   // --- NAVIGATION HELPER ---
-  // This handles both History saving and Navigation to prevent errors
-  void _navigateToDetails(Book book) async {
+  void _navigateToDetails(Book book) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final myBooksProvider = Provider.of<MyBooksProvider>(context, listen: false);
+    
     final userId = userProvider.currentUser?.usrId;
 
     if (userId != null) {
-      // Save to history before moving to the next screen
-      // This ensures the record exists when BookDetailsScreen loads
-      await DatabaseHelper().updateReadingHistory(book.id, userId, 'Not Read');
+      // Optional history logic here
     }
 
     if (!mounted) return;
+
+    // --- CRITICAL FIX ---
+    // We load the SAVED PROGRESS (currentPage), not the TOTAL length (pages).
+    // This ensures the slider starts where you left off.
+    // Default to 0 if null.
+    myBooksProvider.loadPagesCounter(book.pages ?? 0);
 
     Navigator.push(
       context,
@@ -79,6 +83,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     final myBooksProvider = Provider.of<MyBooksProvider>(context);
     final favProvider = Provider.of<FavoriteBooksProvider>(context);
 
+    // Using reversed to show newest added books first
     final allBooks = myBooksProvider.myBooks.reversed.toList();
     final favoriteBooks = favProvider.favoriteBooks;
     final isLoading = myBooksProvider.isLoading || favProvider.isLoading;

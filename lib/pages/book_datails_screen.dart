@@ -18,29 +18,32 @@ class BookDetailsScreen extends StatefulWidget {
 }
 
 class _BookDetailsScreenState extends State<BookDetailsScreen> {
-  // Only visual variables for the slider/input stay local
+  // 1. Current Page tracks where the user is (connected to Provider)
   double _currentPage = 0;
-  late int _totalPages;
-  late TextEditingController _pageController;
   
-  // This index attaches this screen to the specific slot in the Provider's list
+  // 2. Total Pages is FIXED at 300 (or the book's length)
+  final int _totalPages = 300; 
+  
+  late TextEditingController _pageController;
   int _bookIndex = -1;
 
   @override
   void initState() {
     super.initState();
-    _totalPages = 300; 
     _pageController = TextEditingController(text: "0");
 
-    // 1. ATTACH TO PROVIDER ON STARTUP
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Setup MyBooksProvider stuff
       if (widget.book != null) {
         final provider = Provider.of<MyBooksProvider>(context, listen: false);
-        // Find the index of this book in the provider's list
         final index = provider.myBooks.indexWhere((b) => b.id == widget.book!.id);
         
         setState(() {
           _bookIndex = index;
+          // 3. LOAD SAVED PROGRESS FROM PROVIDER
+          // We treat the provider's 'pagesCount' as the "Page Reached"
+          _currentPage = provider.pagesCount.toDouble();
+          _pageController.text = _currentPage.toInt().toString();
         });
       }
     });
@@ -52,32 +55,23 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     super.dispose();
   }
 
-  // --- 2. GET VARIABLES FROM PROVIDER (NOT LOCAL) ---
-String _getLiveStatus() {
+  String _getLiveStatus() {
     final provider = Provider.of<MyBooksProvider>(context);
-    
-    // SAFETY CHECK:
-    // If the index is -1 (not found) OR the index is larger than the list size
-    // We return 'Not Read' instead of crashing the app.
     if (_bookIndex == -1 || _bookIndex >= provider.bookStates.length) {
       return 'Not Read'; 
     }
-    
     return provider.bookStates[_bookIndex];
   }
 
-  // --- 3. UPDATE PROVIDER & DATABASE ---
   void _updateBookStatus(String newStatus) {
     final userId = Provider.of<UserProvider>(context, listen: false).currentUser?.usrId;
     final provider = Provider.of<MyBooksProvider>(context, listen: false);
 
     if (userId != null && _bookIndex != -1) {
-      // This function updates the parallel list AND the Database
       provider.updateState(_bookIndex, widget.book!.id, userId, newStatus);
     }
   }
 
-  // --- ACTIONS ---
   void _toggleReading(bool currentIsReading) {
     if (currentIsReading) {
       _updateBookStatus('Not Read');
@@ -92,23 +86,40 @@ String _getLiveStatus() {
       _currentPage = _totalPages.toDouble();
       _pageController.text = _totalPages.toString();
     });
-    _updateBookStatus('Finished');
     
+    // Update the provider to show we reached the end
+    Provider.of<MyBooksProvider>(context, listen: false).loadPagesCounter(_totalPages);
+
+    _updateBookStatus('Finished');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Congratulations! Book Finished."), backgroundColor: Colors.black),
     );
   }
 
-  void _saveProgress() {
-     // Ensure status stays 'Reading' in DB
-     _updateBookStatus('Reading');
-     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Progress Saved"), backgroundColor: Colors.green));
+void _saveProgress() {
+     // 1. Get the User ID first
+     final userId = Provider.of<UserProvider>(context, listen: false).currentUser?.usrId;
+
+     if (userId != null) {
+        _updateBookStatus('Reading');
+        
+        // 2. Pass userId as the second argument
+        Provider.of<MyBooksProvider>(context, listen: false)
+            .savePageToDatabase(widget.book!.id, userId, _currentPage.toInt());
+            
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Progress Saved"), backgroundColor: Colors.green)
+        );
+     }
   }
 
   void _onPageInputChanged(String value) {
     int? newPage = int.tryParse(value);
     if (newPage != null) {
-      setState(() => _currentPage = newPage.toDouble());
+      // Safety check: Don't let user type more than 300
+      if (newPage > _totalPages) newPage = _totalPages;
+
+      setState(() => _currentPage = newPage!.toDouble());
     }
   }
 
@@ -144,8 +155,6 @@ String _getLiveStatus() {
   Widget build(BuildContext context) {
     if (widget.book == null) return const Scaffold(body: Center(child: Text("Book not found")));
 
-    // --- 4. ATTACH UI VARIABLES TO PROVIDER STATE ---
-    // These update automatically when notifyListeners() is called in Provider
     final status = _getLiveStatus(); 
     final isReading = status == 'Reading';
     final isFinished = status == 'Finished';
@@ -170,7 +179,7 @@ String _getLiveStatus() {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Just close, state is already saved in Provider
+          onPressed: () => Navigator.pop(context), 
         ),
         actions: [
           IconButton(icon: const Icon(Icons.format_quote, color: Colors.black), onPressed:(){}),
@@ -182,7 +191,6 @@ String _getLiveStatus() {
         child: Column(
           children: [
             const SizedBox(height: 10),
-            // IMAGE
             Center(
               child: Container(
                 height: 320, width: 220,
@@ -196,7 +204,6 @@ String _getLiveStatus() {
               ),
             ),
             const SizedBox(height: 30),
-            // TEXT
             Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Serif')),
             const SizedBox(height: 8),
             Text(authors, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
@@ -204,7 +211,6 @@ String _getLiveStatus() {
             Text(widget.book?.category ?? "General", style: TextStyle(color: Colors.grey.shade600)),
             const SizedBox(height: 10),
 
-            // BUTTONS
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(20)),
@@ -212,6 +218,7 @@ String _getLiveStatus() {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
+                  // Display FIXED Total Pages
                   Text("$_totalPages Pages", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   const SizedBox(height: 20),
                   Text(description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, color: Colors.black87)),
@@ -220,18 +227,9 @@ String _getLiveStatus() {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          // --- 5. LOGIC ATTACHED TO PROVIDER ---
                           onPressed: isFinished ? null : () => _toggleReading(isReading),
-                          icon: Icon(
-                            isReading ? Icons.stop_circle_outlined : Icons.menu_book, 
-                            size: 18, 
-                            color: isReading ? Colors.red : Colors.black
-                          ),
-                          // Text depends on Provider state, NOT local state
-                          label: Text(
-                            isReading ? "Stop Reading" : "Read", 
-                            style: TextStyle(color: isReading ? Colors.red : Colors.black)
-                          ),
+                          icon: Icon(isReading ? Icons.stop_circle_outlined : Icons.menu_book, size: 18, color: isReading ? Colors.red : Colors.black),
+                          label: Text(isReading ? "Stop Reading" : "Read", style: TextStyle(color: isReading ? Colors.red : Colors.black)),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: BorderSide(color: isFinished ? Colors.grey.shade300 : (isReading ? Colors.red : Colors.black)),
@@ -242,7 +240,6 @@ String _getLiveStatus() {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          // Only save if Provider says we are reading
                           onPressed: isReading ? _saveProgress : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black,
@@ -262,7 +259,6 @@ String _getLiveStatus() {
 
             const SizedBox(height: 16),
 
-            // PROGRESSION (Depends on Provider State)
             if (!isFinished)
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
@@ -287,14 +283,20 @@ String _getLiveStatus() {
                           ],
                         ),
                         const SizedBox(height: 10),
+                        
+                        // 5. SLIDER FIX: Max is now _totalPages (300)
+                        // This prevents the "Value is not between 0 and 1" crash
                         Slider(
-                          value: _currentPage, min: 0, max: _totalPages.toDouble(),
+                          value: _currentPage, 
+                          min: 0, 
+                          max: _totalPages.toDouble(), 
                           activeColor: Colors.black,
                           onChanged: (value) => setState(() {
                             _currentPage = value;
                             _pageController.text = value.toInt().toString();
                           }),
                         ),
+                        
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -328,10 +330,9 @@ String _getLiveStatus() {
 
             const SizedBox(height: 20),
 
-            // FINISHED BUTTON (Updates Provider)
             Center(
               child: ElevatedButton(
-                // Disable if Provider says finished
+                // No arguments needed for _markAsFinished now
                 onPressed: isFinished ? null : _markAsFinished,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,

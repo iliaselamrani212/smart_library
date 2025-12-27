@@ -19,18 +19,18 @@ class DatabaseHelper{
 ''';
 
 String mybooks = '''
-  CREATE TABLE mybooks (
-    id TEXT,
-    usrId INTEGER,
-    category TEXT,
-    title TEXT,
-    authors TEXT,
-    thumbnail TEXT,
-    description TEXT,
-    status TEXT DEFAULT 'Not Read',
-    PRIMARY KEY (id, usrId),
-    FOREIGN KEY (usrId) REFERENCES users(usrId)
-  )
+  CREATE TABLE mybooks(
+      id TEXT, 
+      title TEXT, 
+      authors TEXT, 
+      thumbnail TEXT, 
+      description TEXT, 
+      category TEXT, 
+      status TEXT,
+      pages INTEGER, 
+      usrId INTEGER,
+      PRIMARY KEY (id, usrId)
+    )
 ''';
 
   String favorites = '''
@@ -153,6 +153,44 @@ Future<Users?> getUser(String email) async {
     return db.insert("users", usr.toMap());
   }
 
+// In database_helper.dart
+Future<void> updatePageProgress(String bookId, int userId, int newPage) async {
+  final db = await initDB(); // or however you access your db instance
+  
+  await db.update(
+    'user_books', // Ensure this matches your table name
+    {'current_page': newPage}, // Ensure you have a column named 'current_page'
+    where: 'book_id = ? AND user_id = ?',
+    whereArgs: [bookId, userId],
+  );
+}
+
+
+Future<int> getBookPage(String bookId, int usrId) async {
+  final db = await initDB();
+  final List<Map<String, dynamic>> maps = await db.query(
+    "mybooks",
+    columns: ["pages"], // Only fetch the pages column
+    where: "id = ? AND usrId = ?",
+    whereArgs: [bookId, usrId],
+  );
+
+  if (maps.isNotEmpty) {
+    return maps.first['pages'] as int? ?? 0;
+  }
+  return 0; // Default if not found
+}
+
+
+Future<int> resetBookPages(String bookId, int usrId) async {
+  final db = await initDB();
+  return await db.update(
+    "mybooks",
+    {"pages": 0}, // Explicitly set pages to 0
+    where: "id = ? AND usrId = ?",
+    whereArgs: [bookId, usrId],
+  );
+}
 
 
 Future<void> updateReadingHistory(String bookId, int usrId, String status) async {
