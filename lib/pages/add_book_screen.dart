@@ -134,7 +134,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
           authors: _authorController.text.split(',').map((e) => e.trim()).toList(),
           thumbnail: imagePath,
           description: _noteController.text,
-          categories: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
+          category: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
         );
 
         // Add to My Books Provider

@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/theme.dart';
-
-
-import 'package:flutter/material.dart';
 
 class InputField extends StatelessWidget {
   final String hintText;

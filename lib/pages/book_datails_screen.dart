@@ -1,18 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:smart_library/models/books_model.dart';
-
-import 'MyQuotesScreen.dart';
-import 'layout.dart';
+import 'package:smart_library/providers/user_provider.dart';
+import 'package:smart_library/providers/my_books_provider.dart';
 
 class BookDetailsScreen extends StatefulWidget {
-  // On remplace le Map<String, String> par le modèle Book
   final Book? book; 
 
-  // On peut garder le constructeur actuel pour compatibilité mais on l'adapte
   const BookDetailsScreen({
     Key? key,
-    this.book, // Désormais optionnel, si null on affichera des données par défaut
+    this.book, 
   }) : super(key: key);
 
   @override
@@ -20,21 +18,32 @@ class BookDetailsScreen extends StatefulWidget {
 }
 
 class _BookDetailsScreenState extends State<BookDetailsScreen> {
+  // Only visual variables for the slider/input stay local
   double _currentPage = 0;
   late int _totalPages;
-  bool _isFinished = false;
-  bool _isEditingProgress = false;
-
   late TextEditingController _pageController;
+  
+  // This index attaches this screen to the specific slot in the Provider's list
+  int _bookIndex = -1;
 
   @override
   void initState() {
     super.initState();
-    // On utilise les données réelles du livre ou une valeur par défaut
-    // Le modèle Book actuel n'a pas de champ 'pages' ni 'category'
-    // Vous devriez probablement ajouter ces champs au modèle Book dans le futur
-    _totalPages = 300; // Valeur par défaut car pas dans le modèle Book
-    _pageController = TextEditingController(text: _currentPage.toInt().toString());
+    _totalPages = 300; 
+    _pageController = TextEditingController(text: "0");
+
+    // 1. ATTACH TO PROVIDER ON STARTUP
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.book != null) {
+        final provider = Provider.of<MyBooksProvider>(context, listen: false);
+        // Find the index of this book in the provider's list
+        final index = provider.myBooks.indexWhere((b) => b.id == widget.book!.id);
+        
+        setState(() {
+          _bookIndex = index;
+        });
+      }
+    });
   }
 
   @override
@@ -43,66 +52,70 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     super.dispose();
   }
 
-  void _enableReading() {
-    setState(() {
-      _isEditingProgress = true;
-      _isFinished = false;
-    });
+  // --- 2. GET VARIABLES FROM PROVIDER (NOT LOCAL) ---
+String _getLiveStatus() {
+    final provider = Provider.of<MyBooksProvider>(context);
+    
+    // SAFETY CHECK:
+    // If the index is -1 (not found) OR the index is larger than the list size
+    // We return 'Not Read' instead of crashing the app.
+    if (_bookIndex == -1 || _bookIndex >= provider.bookStates.length) {
+      return 'Not Read'; 
+    }
+    
+    return provider.bookStates[_bookIndex];
   }
 
-  void _saveProgress() {
-    setState(() {
-      _isEditingProgress = false;
-      _pageController.text = _currentPage.toInt().toString();
+  // --- 3. UPDATE PROVIDER & DATABASE ---
+  void _updateBookStatus(String newStatus) {
+    final userId = Provider.of<UserProvider>(context, listen: false).currentUser?.usrId;
+    final provider = Provider.of<MyBooksProvider>(context, listen: false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Saved at page ${_currentPage.toInt()}!"),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    });
+    if (userId != null && _bookIndex != -1) {
+      // This function updates the parallel list AND the Database
+      provider.updateState(_bookIndex, widget.book!.id, userId, newStatus);
+    }
+  }
+
+  // --- ACTIONS ---
+  void _toggleReading(bool currentIsReading) {
+    if (currentIsReading) {
+      _updateBookStatus('Not Read');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stopped Reading")));
+    } else {
+      _updateBookStatus('Reading');
+    }
   }
 
   void _markAsFinished() {
     setState(() {
       _currentPage = _totalPages.toDouble();
       _pageController.text = _totalPages.toString();
-      _isEditingProgress = false;
-      _isFinished = true;
     });
-
+    _updateBookStatus('Finished');
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Congratulations! You finished the book!"),
-        backgroundColor: Colors.black, // CHANGÉ : Noir au lieu de Bleu
-        duration: Duration(seconds: 3),
-      ),
+      const SnackBar(content: Text("Congratulations! Book Finished."), backgroundColor: Colors.black),
     );
+  }
+
+  void _saveProgress() {
+     // Ensure status stays 'Reading' in DB
+     _updateBookStatus('Reading');
+     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Progress Saved"), backgroundColor: Colors.green));
   }
 
   void _onPageInputChanged(String value) {
     int? newPage = int.tryParse(value);
     if (newPage != null) {
-      setState(() {
-        if (newPage > _totalPages) {
-          _currentPage = _totalPages.toDouble();
-        } else if (newPage < 0) {
-          _currentPage = 0;
-        } else {
-          _currentPage = newPage.toDouble();
-        }
-      });
+      setState(() => _currentPage = newPage.toDouble());
     }
   }
 
   void _showOptions() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
@@ -112,19 +125,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               ListTile(
                 leading: const Icon(Icons.edit, color: Colors.blue),
                 title: const Text("Modifier"),
-                onTap: () {
-                  Navigator.pop(context);
-                  print("Modifier cliqué");
-                },
+                onTap: () => Navigator.pop(context),
               ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text("Supprimer", style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  print("Supprimer cliqué");
-                },
+                onTap: () => Navigator.pop(context),
               ),
             ],
           ),
@@ -135,151 +142,99 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Si aucun livre n'est passé (ce qui ne devrait pas arriver si on navigue correctement), on met un placeholder
-    final title = widget.book?.title ?? "No Title";
-    final authors = (widget.book?.authors != null && widget.book!.authors.isNotEmpty) 
-        ? widget.book!.authors.join(', ') 
-        : "Unknown Author";
-    final description = widget.book?.description ?? "No description available.";
+    if (widget.book == null) return const Scaffold(body: Center(child: Text("Book not found")));
+
+    // --- 4. ATTACH UI VARIABLES TO PROVIDER STATE ---
+    // These update automatically when notifyListeners() is called in Provider
+    final status = _getLiveStatus(); 
+    final isReading = status == 'Reading';
+    final isFinished = status == 'Finished';
+
+    final title = widget.book!.title;
+    final authors = widget.book!.authors.isNotEmpty ? widget.book!.authors.join(', ') : "Unknown Author";
+    final description = widget.book!.description;
     
-    // Gestion de l'image
     ImageProvider imageProvider;
-    if (widget.book != null && widget.book!.thumbnail.isNotEmpty) {
-      if (widget.book!.thumbnail.startsWith('http')) {
-        imageProvider = NetworkImage(widget.book!.thumbnail);
-      } else {
-        imageProvider = FileImage(File(widget.book!.thumbnail));
-      }
+    if (widget.book!.thumbnail.isNotEmpty) {
+      imageProvider = widget.book!.thumbnail.startsWith('http')
+          ? NetworkImage(widget.book!.thumbnail)
+          : FileImage(File(widget.book!.thumbnail)) as ImageProvider;
     } else {
       imageProvider = const AssetImage('assets/images/placeholder.png');
     }
 
     return Scaffold(
       backgroundColor: Colors.white,
-
-      // ---------- APP BAR ----------
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context), // Just close, state is already saved in Provider
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.format_quote, color: Colors.black),
-            onPressed:(){}
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.black),
-            onPressed: _showOptions,
-          ),
+          IconButton(icon: const Icon(Icons.format_quote, color: Colors.black), onPressed:(){}),
+          IconButton(icon: const Icon(Icons.more_horiz, color: Colors.black), onPressed: _showOptions),
         ],
       ),
-
-      // ---------- BODY ----------
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
             const SizedBox(height: 10),
-
-            // 1. IMAGE
+            // IMAGE
             Center(
               child: Container(
-                height: 320,
-                width: 220,
+                height: 320, width: 220,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
+                    BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10)),
                   ],
-                  image: DecorationImage(
-                    image: imageProvider,
-                    fit: BoxFit.cover,
-                  ),
+                  image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // 2. TEXTES
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-                fontFamily: 'Serif',
-              ),
-            ),
+            // TEXT
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Serif')),
             const SizedBox(height: 8),
-            Text(
-              authors,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-
+            Text(authors, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Thriller", // Catégorie hardcodée car manquante dans le modèle
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-
+            Text(widget.book?.category ?? "General", style: TextStyle(color: Colors.grey.shade600)),
             const SizedBox(height: 10),
 
-            // 4. BOUTONS READ / SAVE
+            // BUTTONS
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F7FA),
-                borderRadius: BorderRadius.circular(20),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(20)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
-                  Text(
-                    "$_totalPages Pages",
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                  ),
+                  Text("$_totalPages Pages", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   const SizedBox(height: 20),
-                  
-                  // Description courte si disponible
-                  Text(
-                    description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, color: Colors.black87),
-                  ),
-                  
+                  Text(description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, color: Colors.black87)),
                   const SizedBox(height: 20),
-
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _isEditingProgress ? null : _enableReading,
-                          icon: const Icon(Icons.menu_book, size: 18, color: Colors.black),
-                          label: const Text("Read", style: TextStyle(color: Colors.black)),
+                          // --- 5. LOGIC ATTACHED TO PROVIDER ---
+                          onPressed: isFinished ? null : () => _toggleReading(isReading),
+                          icon: Icon(
+                            isReading ? Icons.stop_circle_outlined : Icons.menu_book, 
+                            size: 18, 
+                            color: isReading ? Colors.red : Colors.black
+                          ),
+                          // Text depends on Provider state, NOT local state
+                          label: Text(
+                            isReading ? "Stop Reading" : "Read", 
+                            style: TextStyle(color: isReading ? Colors.red : Colors.black)
+                          ),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: _isEditingProgress ? Colors.grey.shade300 : Colors.black),
+                            side: BorderSide(color: isFinished ? Colors.grey.shade300 : (isReading ? Colors.red : Colors.black)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
@@ -287,7 +242,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _isEditingProgress ? _saveProgress : null,
+                          // Only save if Provider says we are reading
+                          onPressed: isReading ? _saveProgress : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black,
                             disabledBackgroundColor: Colors.grey.shade300,
@@ -295,10 +251,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            "Save",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
+                          child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -309,139 +262,87 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 16),
 
-            // 5. PROGRESSION
-            _isFinished
-                ? const SizedBox()
-                : AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              opacity: _isEditingProgress ? 1.0 : 0.6,
-              child: AbsorbPointer(
-                absorbing: !_isEditingProgress,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F7FA),
-                    borderRadius: BorderRadius.circular(20),
-                    border: _isEditingProgress
-                        ? Border.all(color: Colors.black, width: 1.5)
-                        : null,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Text(
-                                "Reading Progress",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              if (!_isEditingProgress)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 8.0),
-                                  child: Icon(Icons.lock_outline, size: 18, color: Colors.grey),
-                                ),
-                            ],
-                          ),
-                          Text(
-                            "${(_currentPage / _totalPages * 100).toInt()}%",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _isEditingProgress ? Colors.black : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: Colors.black,
-                          inactiveTrackColor: Colors.grey.shade300,
-                          thumbColor: Colors.black,
-                          overlayColor: Colors.black.withOpacity(0.1),
-                          trackHeight: 6.0,
+            // PROGRESSION (Depends on Provider State)
+            if (!isFinished)
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: isReading ? 1.0 : 0.6,
+                child: AbsorbPointer(
+                  absorbing: !isReading,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F7FA),
+                      borderRadius: BorderRadius.circular(20),
+                      border: isReading ? Border.all(color: Colors.black, width: 1.5) : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Reading Progress", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text("${(_currentPage / _totalPages * 100).toInt()}%", style: TextStyle(fontWeight: FontWeight.bold, color: isReading ? Colors.black : Colors.grey)),
+                          ],
                         ),
-                        child: Slider(
-                          value: _currentPage,
-                          min: 0,
-                          max: _totalPages.toDouble(),
-                          onChanged: (value) {
-                            setState(() {
-                              _currentPage = value;
-                              _pageController.text = value.toInt().toString();
-                            });
-                          },
+                        const SizedBox(height: 10),
+                        Slider(
+                          value: _currentPage, min: 0, max: _totalPages.toDouble(),
+                          activeColor: Colors.black,
+                          onChanged: (value) => setState(() {
+                            _currentPage = value;
+                            _pageController.text = value.toInt().toString();
+                          }),
                         ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Text("Page ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 70,
-                                height: 35,
-                                child: TextField(
-                                  controller: _pageController,
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  onChanged: _onPageInputChanged,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.only(bottom: 10),
-                                    isDense: true,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(color: Colors.grey.shade400),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(color: Colors.black, width: 2),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Text("Page ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                SizedBox(
+                                  width: 70, height: 35,
+                                  child: TextField(
+                                    controller: _pageController,
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.center,
+                                    onChanged: _onPageInputChanged,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    decoration: InputDecoration(
+                                      filled: true, fillColor: Colors.white,
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Text("of $_totalPages", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
-                        ],
-                      ),
-                    ],
+                              ],
+                            ),
+                            Text("of $_totalPages", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
             const SizedBox(height: 20),
 
-            // 6. BOUTON FINISHED (MODIFIÉ ICI)
+            // FINISHED BUTTON (Updates Provider)
             Center(
               child: ElevatedButton(
-                onPressed: _isFinished ? null : _markAsFinished,
+                // Disable if Provider says finished
+                onPressed: isFinished ? null : _markAsFinished,
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
                   disabledBackgroundColor: Colors.grey.shade300,
-                  backgroundColor: Colors.black, // CHANGÉ : Noir pour le thème
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   elevation: 0,
                 ),
-                child: Text(
-                  _isFinished ? 'Finished' : "Mark as Finished",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white, // CHANGÉ : Blanc sur fond noir
-                  ),
-                ),
+                child: Text(isFinished ? 'Finished' : "Mark as Finished", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
-
             const SizedBox(height: 80),
           ],
         ),

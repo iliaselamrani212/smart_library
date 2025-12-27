@@ -1,5 +1,6 @@
 import 'package:smart_library/auth/auth.dart';
 import 'package:smart_library/providers/favorites_provider.dart';
+import 'package:smart_library/providers/history_provider.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ void main() async {
         ChangeNotifierProvider<UserProvider>(create: (_) => UserProvider()),
         ChangeNotifierProvider<FavoriteBooksProvider>(create: (_) => FavoriteBooksProvider()),
         ChangeNotifierProvider<MyBooksProvider>(create: (_) => MyBooksProvider()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()),
       ],
       child: const MyApp(),
     ),

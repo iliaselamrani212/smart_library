@@ -18,18 +18,19 @@ class DatabaseHelper{
   )
 ''';
 
-   String mybooks = '''
+String mybooks = '''
   CREATE TABLE mybooks (
-  id TEXT,
-  usrId INTEGER,
-  category TEXT, -- New field added here
-  title TEXT,
-  authors TEXT,
-  thumbnail TEXT,
-  description TEXT,
-  PRIMARY KEY (id, usrId),
-  FOREIGN KEY (usrId) REFERENCES users(usrId)
-)
+    id TEXT,
+    usrId INTEGER,
+    category TEXT,
+    title TEXT,
+    authors TEXT,
+    thumbnail TEXT,
+    description TEXT,
+    status TEXT DEFAULT 'Not Read',
+    PRIMARY KEY (id, usrId),
+    FOREIGN KEY (usrId) REFERENCES users(usrId)
+  )
 ''';
 
   String favorites = '''
@@ -46,14 +47,16 @@ class DatabaseHelper{
   ''';
 
  String reading_history = '''
-   CREATE TABLE reading_history (
-   id	INTEGER	PRIMARY	KEY,
-   bookId	INTEGER,
-   startDate	TEXT,
-   endDate	TEXT,
-   status	TEXT,
-   )
-   ''';
+  CREATE TABLE reading_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bookId TEXT,
+    usrId INTEGER,
+    startDate TEXT,
+    endDate TEXT,
+    status TEXT,
+    FOREIGN KEY (usrId) REFERENCES users(usrId)
+  )
+''';
 
 String notesTable = '''
   CREATE TABLE notes (
@@ -93,10 +96,10 @@ Future<Database> initDB ()async{
       await db.execute(user);
       await db.execute(favorites);
       await db.execute(mybooks);
-      await db.execute(notesTable); // <--- YOU MUST ADD THIS LINE
+      await db.execute(notesTable);
+      await db.execute(reading_history);
     });
   }
-
   //Function
 
   //Authentication
@@ -111,6 +114,32 @@ Future<bool> authenticate(Users usr) async {
   return result.isNotEmpty;
 }
 
+// Function to update the reading state of a book in the library
+Future<int> updateBookState(String bookId, int usrId, String newState) async {
+  final Database db = await initDB();
+  return await db.update(
+    "mybooks",
+    {"status": newState},
+    where: "id = ? AND usrId = ?",
+    whereArgs: [bookId, usrId],
+  );
+}
+
+Future<String> getBookState(String bookId, int usrId) async {
+  final Database db = await initDB();
+  final List<Map<String, dynamic>> maps = await db.query(
+    "mybooks",
+    columns: ["status"],
+    where: "id = ? AND usrId = ?",
+    whereArgs: [bookId, usrId],
+  );
+
+  if (maps.isNotEmpty) {
+    return maps.first['status'] ?? 'Not Read';
+  }
+  return 'Not Read';
+}
+
 // Get User details by Email
 Future<Users?> getUser(String email) async {
   final Database db = await initDB();
@@ -123,6 +152,31 @@ Future<Users?> getUser(String email) async {
     final Database db = await initDB();
     return db.insert("users", usr.toMap());
   }
+
+
+
+Future<void> updateReadingHistory(String bookId, int usrId, String status) async {
+  final Database db = await initDB();
+  final String now = DateTime.now().toIso8601String();
+  
+  // You might want to use 'insert' with conflictAlgorithm or a raw query depending on your table logic
+  await db.rawInsert('''
+    INSERT OR REPLACE INTO reading_history (bookId, usrId, startDate, status)
+    VALUES (?, ?, ?, ?)
+  ''', [bookId, usrId, now, status]);
+}
+
+// Function to fetch the history for the Settings/History screen
+Future<List<Map<String, dynamic>>> getReadingHistory(int usrId) async {
+  final Database db = await initDB();
+  return await db.rawQuery('''
+    SELECT h.*, b.title, b.thumbnail 
+    FROM reading_history h
+    JOIN mybooks b ON h.bookId = b.id
+    WHERE h.usrId = ?
+    ORDER BY h.startDate DESC
+  ''', [usrId]);
+}
 
 
  
@@ -165,7 +219,7 @@ Future<Users?> getUser(String email) async {
         thumbnail: maps[i]['thumbnail'],
         description: maps[i]['description'],
         // NEW: Add categories mapping
-        categories: maps[i]['categories'] ?? 'General', 
+        category: maps[i]['category'] ?? 'General', 
       );
     });
   }
@@ -188,7 +242,7 @@ Future<Users?> getUser(String email) async {
         thumbnail: maps[i]['thumbnail'],
         description: maps[i]['description'],
         // NEW: Add categories mapping
-        categories: maps[i]['categories'] ?? 'General',
+        category: maps[i]['category'] ?? 'General',
       );
     });
   }

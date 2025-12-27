@@ -171,7 +171,7 @@ class ShowFavorites extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Chip(
-              label: Text(book.categories, style: const TextStyle(fontSize: 12)),
+              label: Text(book.category, style: const TextStyle(fontSize: 12)),
               backgroundColor: Colors.blue.withOpacity(0.1),
             ),
             const SizedBox(height: 20),
