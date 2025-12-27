@@ -8,5 +8,10 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@android:color/white</item>
     </style>
+    <style name="CropTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:statusBarColor">#000000</item>
+    </style>
 
 </resources>
