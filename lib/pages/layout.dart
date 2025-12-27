@@ -48,8 +48,6 @@ class _LayoutState extends State<Layout> {
       const SizedBox(),
 
 
-
-
       const MyQuotesScreen(),
 
 

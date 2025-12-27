@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_library/auth/auth.dart';
+import 'package:smart_library/providers/user_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -89,37 +92,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 30),
 
           // ---------- LOGOUT BUTTON ----------
-          SizedBox(
-            width: double.infinity,
-            height: 55, // Bouton un peu plus haut pour le confort
-            child: ElevatedButton(
-              onPressed: () {
-                // Logique de déconnexion
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFF0F0), // Fond rouge très très clair
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15), // Arrondi cohérent avec les inputs
-                ),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.logout, color: Colors.red, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Log Out',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // ---------- LOGOUT BUTTON ----------
+SizedBox(
+  width: double.infinity,
+  height: 55,
+  child: ElevatedButton(
+    onPressed: () {
+      // 1. Access the Provider and clear the user
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.logout();
+
+      // 2. Show a small confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Logged out successfully")),
+      );
+
+      // 3. Navigate to Login and clear the navigation history
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (route) => false,
+      );
+    },
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFFFFF0F0),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+    ),
+    child: const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.logout, color: Colors.red, size: 20),
+        SizedBox(width: 8),
+        Text(
+          'Log Out',
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
+        ),
+      ],
+    ),
+  ),
+),
 
           const SizedBox(height: 80), // Espace pour la BottomBar
         ],

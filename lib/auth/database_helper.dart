@@ -18,18 +18,19 @@ class DatabaseHelper{
   )
 ''';
 
-     String mybooks = '''
-   CREATE TABLE mybooks (
-    id TEXT,
-    usrId INTEGER,
-    title TEXT,
-    authors TEXT,
-    thumbnail TEXT,
-    description TEXT,
-    PRIMARY KEY (id, usrId),
-    FOREIGN KEY (usrId) REFERENCES users(usrId)
-   )
-   ''';
+   String mybooks = '''
+  CREATE TABLE mybooks (
+  id TEXT,
+  usrId INTEGER,
+  category TEXT, -- New field added here
+  title TEXT,
+  authors TEXT,
+  thumbnail TEXT,
+  description TEXT,
+  PRIMARY KEY (id, usrId),
+  FOREIGN KEY (usrId) REFERENCES users(usrId)
+)
+''';
 
   String favorites = '''
     CREATE TABLE favorites (
@@ -146,6 +147,7 @@ Future<Users?> getUser(String email) async {
 
   // Retrieve all favorite books
   //had lfunction hia bach kan affichiw list dial favorit
+// Retrieve all favorite books
   Future<List<Book>> getFavorites(int usrId) async {
     final Database db = await initDB();
     final List<Map<String, dynamic>> maps = await db.query(
@@ -158,33 +160,38 @@ Future<Users?> getUser(String email) async {
       return Book(
         id: maps[i]['id'],
         title: maps[i]['title'],
+        // Convert string from DB back to a List for the Model
         authors: maps[i]['authors'].toString().split(', '),
         thumbnail: maps[i]['thumbnail'],
         description: maps[i]['description'],
+        // NEW: Add categories mapping
+        categories: maps[i]['categories'] ?? 'General', 
       );
     });
   }
 
-
+  // Retrieve all books in user library
   Future<List<Book>> getUserBooks(int usrId) async {
-  final Database db = await initDB();
-  final List<Map<String, dynamic>> maps = await db.query(
-    "mybooks",
-    where: "usrId = ?",
-    whereArgs: [usrId],
-  );
-
-  return List.generate(maps.length, (i) {
-    return Book(
-      id: maps[i]['id'],
-      title: maps[i]['title'],
-      authors: maps[i]['authors'].toString().split(', '),
-      thumbnail: maps[i]['thumbnail'],
-      description: maps[i]['description'],
+    final Database db = await initDB();
+    final List<Map<String, dynamic>> maps = await db.query(
+      "mybooks",
+      where: "usrId = ?",
+      whereArgs: [usrId],
     );
-  });
-}
 
+    return List.generate(maps.length, (i) {
+      return Book(
+        id: maps[i]['id'],
+        title: maps[i]['title'],
+        // Convert string from DB back to a List for the Model
+        authors: maps[i]['authors'].toString().split(', '),
+        thumbnail: maps[i]['thumbnail'],
+        description: maps[i]['description'],
+        // NEW: Add categories mapping
+        categories: maps[i]['categories'] ?? 'General',
+      );
+    });
+  }
 Future<int> insertUserBook(Book book, int usrId) async {
   final Database db = await initDB();
   return db.insert(

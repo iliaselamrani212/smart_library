@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     InputField(
-                      hintText: 'Username', // Changed to Username as per your UserProvider
+                      hintText: 'Email', // Changed to Username as per your UserProvider
                       controller: emailController,
                       validator: Validators.validateUserName, // Applied validator
                     ),
@@ -290,11 +290,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       email: emailController.text,
                       password: passwordController.text,
                     );
-                  
+
                     // Call Provider to save to DB
                     final userProvider = Provider.of<UserProvider>(context, listen: false);
                     bool success = await userProvider.register(newUser);
-                  
+
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -302,7 +302,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           backgroundColor: Colors.green
                         ),
                       );
-                  
+
                       // --- CHANGE THIS LINE FOR EXPLICIT NAVIGATION ---
                       Navigator.pushAndRemoveUntil(
                         context,
@@ -326,7 +326,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Text("Already have an account? ", style: regular16pt.copyWith(color: textGrey)),
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                        (route) => false, // This clears the navigation stack
+                      ),
                     child: Text('Login', style: regular16pt.copyWith(color: primaryBlue)),
                   ),
                 ],
