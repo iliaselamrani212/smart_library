@@ -47,11 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          _buildSettingItem(
-            icon: Icons.person_outline,
-            title: 'Edit Profile',
-            onTap: () {},
-          ),
+          
           _buildSettingItem(
             icon: Icons.language,
             title: 'Language',
@@ -128,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(color: AppThemes.borderColor, width: 2),
                 image: const DecorationImage(
-                  image: AssetImage('assets/images/femme.jpg'),
+                  image: AssetImage('assets/images/userlogo.png'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -156,16 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const Spacer(),
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppThemes.darkSecondaryBg : Colors.grey.shade200,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.edit_outlined, color: AppThemes.accentColor),
-              ),
-            ),
+
           ],
         );
       },
