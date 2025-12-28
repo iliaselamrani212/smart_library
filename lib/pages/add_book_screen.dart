@@ -337,6 +337,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
 // --- SCANNER SCREEN ---
 class BarcodeScannerScreen extends StatelessWidget {
   const BarcodeScannerScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -344,7 +345,9 @@ class BarcodeScannerScreen extends StatelessWidget {
       body: MobileScanner(
         onDetect: (capture) {
           final barcode = capture.barcodes.first;
-          if (barcode.rawValue != null) Navigator.pop(context, barcode.rawValue);
+          if (barcode.rawValue != null) {
+            Navigator.pop(context, barcode.rawValue); // Return the scanned ISBN.
+          }
         },
       ),
     );
