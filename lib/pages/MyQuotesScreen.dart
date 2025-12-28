@@ -5,7 +5,9 @@ import 'package:smart_library/auth/database_helper.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:smart_library/models/books_model.dart';
+import 'package:smart_library/theme/app_themes.dart';
 import 'AddNoteScreen.dart';
+
 
 class MyQuotesScreen extends StatefulWidget {
   final String? bookId;
@@ -35,13 +37,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   void _deleteQuote(int noteId) async {
     await _dbHelper.deleteNote(noteId);
     setState(() {}); // Refresh the list after deleting
-  }
-
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Copied to clipboard!")),
-    );
   }
 
   void _navigateToEditNotePage(Map<String, dynamic> quote) {
@@ -82,20 +77,21 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     // 1. Get the current User ID from the Provider
     final userProvider = context.watch<UserProvider>();
     final int? userId = userProvider.currentUser?.usrId;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: isDark ? AppThemes.darkBg : const Color(0xFFF5F7FA),
       appBar: widget.bookId != null ? AppBar(
-        title: const Text("Book Quotes", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.transparent,
+        title: Text("Book Quotes", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+        backgroundColor: isDark ? AppThemes.darkBg : Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
       ) : null,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToAddNote,
-        backgroundColor: Colors.black,
-        icon: const Icon(Icons.edit, color: Colors.white),
-        label: const Text("Add Note", style: TextStyle(color: Colors.white)),
+        backgroundColor: isDark ? AppThemes.accentColor : Colors.black,
+        icon: Icon(Icons.edit, color: isDark ? Colors.black : Colors.white),
+        label: Text("Add Note", style: TextStyle(color: isDark ? Colors.black : Colors.white)),
       ),
       body: userId == null
           ? const Center(child: Text("Please log in to see your quotes."))
@@ -116,11 +112,11 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.format_quote, size: 80, color: Colors.grey.shade300),
+                        Icon(Icons.format_quote, size: 80, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                         const SizedBox(height: 20),
                         Text(
                           "No quotes saved yet",
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                          style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 16),
                         ),
                       ],
                     ),
@@ -146,7 +142,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                         ),
                         child: const Icon(Icons.delete, color: Colors.red),
                       ),
-                      child: _buildQuoteCard(quote),
+                      child: _buildQuoteCard(quote, isDark),
                     );
                   },
                 );
@@ -156,7 +152,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   }
 
   // UI helper for the card design
-  Widget _buildQuoteCard(Map<String, dynamic> quote) {
+  Widget _buildQuoteCard(Map<String, dynamic> quote, bool isDark) {
     final bookTitle = Provider.of<MyBooksProvider>(context, listen: false)
         .myBooks
         .firstWhere((book) => book.id == quote['bookId'], orElse: () => Book(id: 'unknown', title: 'Unknown Book', authors: [], thumbnail: '', description: '', category: '', status: 'Not Read', pages: 0, totalPages: 0))
@@ -166,11 +162,11 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppThemes.darkCardBg : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: (isDark ? Colors.black : Colors.black).withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -185,15 +181,15 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.book, size: 18, color: Colors.black54),
+                    Icon(Icons.book, size: 18, color: isDark ? AppThemes.textSecondary : Colors.black54),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         bookTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Colors.black87,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -204,12 +200,12 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: isDark ? AppThemes.darkSecondaryBg : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   "Page ${quote['pageNumber'] ?? '?'}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black),
                 ),
               ),
             ],
@@ -218,34 +214,34 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.format_quote_rounded, color: Colors.grey, size: 24),
+              Icon(Icons.format_quote_rounded, color: isDark ? Colors.grey.shade600 : Colors.grey, size: 24),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   quote['noteText'] ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     height: 1.5,
                     fontStyle: FontStyle.italic,
-                    color: Colors.black87,
+                    color: isDark ? Colors.grey.shade300 : Colors.black87,
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 5),
-          Divider(color: Colors.grey.shade200),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 "Added on ${quote['date']}",
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                style: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade500, fontSize: 12),
               ),
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    icon: Icon(Icons.edit, color: isDark ? AppThemes.accentColor : Colors.blue),
                     onPressed: () {
                       // Navigate to edit screen or show edit dialog
                       _navigateToEditNotePage(quote);
@@ -267,6 +263,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
   }
 
   void _editQuote(Map<String, dynamic> quote) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) {
@@ -274,29 +271,54 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
         final TextEditingController pageController = TextEditingController(text: quote['pageNumber']?.toString() ?? '');
 
         return AlertDialog(
-          title: const Text("Edit Note"),
+          backgroundColor: isDark ? AppThemes.darkCardBg : Colors.white,
+          title: Text("Edit Note", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: pageController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Page Number"),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  labelText: "Page Number",
+                  labelStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: isDark ? AppThemes.accentColor : Colors.blue),
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: noteController,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: "Note Text"),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  labelText: "Note Text",
+                  labelStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: isDark ? AppThemes.accentColor : Colors.blue),
+                  ),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: Text("Cancel", style: TextStyle(color: isDark ? Colors.grey : Colors.black)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? AppThemes.accentColor : Colors.blue,
+                foregroundColor: isDark ? Colors.black : Colors.white,
+              ),
               onPressed: () async {
                 final updatedNote = {
                   'id': quote['id'],

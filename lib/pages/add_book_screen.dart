@@ -25,7 +25,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
   // Text Controllers
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _authorController = TextEditingController();
+  final TextEditingController _authorCont = TextEditingController();
   final TextEditingController _isbnController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController();
@@ -58,7 +58,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
 
             setState(() {
               _titleController.text = book['title'] ?? '';
-              _authorController.text = (book['authors'] as List?)?.join(', ') ?? '';
+              _authorCont.text = (book['authors'] as List?)?.join(', ') ?? '';
               _yearController.text = book['publishedDate']?.split('-')[0] ?? '';
               _categoryController.text = (book['categories'] as List?)?.join(', ') ?? 'General';
               _noteController.text = book['description'] ?? '';
@@ -136,7 +136,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
         final newBook = Book(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           title: _titleController.text,
-          authors: _authorController.text.split(',').map((e) => e.trim()).toList(),
+          authors: _authorCont.text.split(',').map((e) => e.trim()).toList(),
           thumbnail: imagePath,
           description: _noteController.text,
           category: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
@@ -237,7 +237,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
               
               const SizedBox(height: 15),
               _buildLabel("Author", isDark),
-              _buildTextField(_authorController, "Author(s)", Icons.person_outline, isDark),
+              _buildTextField(_authorCont, "Author(s)", Icons.person_outline, isDark),
               
               const SizedBox(height: 15),
               // 4. ADDED: Modified Row to include Pages
