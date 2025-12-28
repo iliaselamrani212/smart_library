@@ -261,23 +261,24 @@ class _AddBookScreenState extends State<AddBookScreen> {
                       ]
                     )
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, 
-                      children: [
-                        _buildLabel("Pages"),
-                        _buildTextField(_pagesController, "123", Icons.format_list_numbered, isNumber: true),
-                      ]
-                    )
-                  ),
                 ],
               ),
               
               const SizedBox(height: 15),
               _buildLabel("Description"),
               _buildTextField(_noteController, "Description...", Icons.notes, maxLines: 3, isRequired: false),
+
+              const SizedBox(height: 15),
+              // --- Added: Page Number Field ---
+              // This field allows the user to manually input the page number if it is not fetched automatically.
+              _buildLabel("Page Number"),
+              _buildTextField(
+                _pagesController,
+                "Enter page number",
+                Icons.format_list_numbered,
+                isNumber: true,
+                isRequired: false, // Optional field
+              ),
 
               const SizedBox(height: 20),
               SwitchListTile(
