@@ -92,7 +92,7 @@ class DatabaseHelper{
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, databaseName);
 
-    return openDatabase(path, version: 10, 
+    return openDatabase(path, version: 11, 
     onCreate: (db,version)async{
       await db.execute(user);
       await db.execute(mybooks);
@@ -143,6 +143,13 @@ class DatabaseHelper{
              await db.execute("ALTER TABLE notes ADD COLUMN date TEXT DEFAULT ''");
            } catch (e) {
              print("Migration error v10 (ignored if column exists): $e");
+           }
+        }
+        if (oldVersion < 11) {
+           try {
+             await db.execute(daily_reading_log);
+           } catch (e) {
+             print("Migration error v11 (ignored if table exists): $e");
            }
         }
       },
@@ -336,6 +343,30 @@ class DatabaseHelper{
       where: "id = ?",
       whereArgs: [note['id']],
     );
+  }
+
+  Future<Map<String, int>> getMonthlyReadingStats(int usrId) async {
+    final Database db = await initDB();
+    try {
+      final result = await db.rawQuery('''
+        SELECT substr(logDate, 1, 7) as month, SUM(pagesRead) as total
+        FROM daily_reading_log
+        WHERE usrId = ?
+        GROUP BY month
+      ''', [usrId]);
+
+      Map<String, int> stats = {};
+      for (var row in result) {
+        if (row['month'] != null && row['total'] != null) {
+          stats[row['month'] as String] = row['total'] as int;
+        }
+      }
+      return stats;
+    } catch (e) {
+      // Return empty if table doesn't exist yet or other error
+      print("Error fetching monthly stats: $e");
+      return {};
+    }
   }
 
 

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_library/auth/database_helper.dart'; // Import DatabaseHelper
 import 'package:smart_library/models/books_model.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:smart_library/providers/favorites_provider.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:smart_library/pages/book_datails_screen.dart';
 import 'package:smart_library/theme/app_themes.dart';
-// import '../widgets/calender.dart'; // Décommentez si vous avez ce fichier
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   // Callback pour changer d'onglet depuis le Home
@@ -20,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final DatabaseHelper _dbHelper = DatabaseHelper(); // Instance of DatabaseHelper
+  int _pagesReadThisMonth = 0; // State variable for pages read this month
 
   @override
   void initState() {
@@ -30,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _loadData() {
+  Future<void> _loadData() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final userId = userProvider.currentUser?.usrId;
 
@@ -39,6 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
       Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
       // On peut aussi précharger les favoris ici si on veut
       Provider.of<FavoriteBooksProvider>(context, listen: false).fetchFavorites(userId);
+
+      // Fetch pages read this month from DB
+      final pages = await _dbHelper.getPagesReadThisMonth(userId);
+      if (mounted) {
+        setState(() {
+          _pagesReadThisMonth = pages;
+        });
+      }
     }
   }
 
@@ -82,16 +93,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final totalCount = allBooks.length;
 
     // --- CALCUL OBJECTIF 300 PAGES ---
-    // Somme des pages lues pour tous les livres
-    // Note: Pour être précis "par mois", il faudrait filtrer sur l'historique de lecture avec des dates.
-    // Ici, on fait une simplification : on somme toutes les pages lues actuelles de tous les livres.
-    // Si vous voulez être précis "ce mois-ci", il faut une table reading_history plus complexe.
-    // Mais pour l'objectif simple demandé :
-    final int totalPagesRead = allBooks.fold(0, (sum, book) => sum + (book.pages));
+    // Utiliser les pages lues ce mois-ci depuis la DB au lieu de la somme totale
     final int monthlyGoal = 300;
     
     // Pourcentage de l'objectif (max 1.0)
-    double progressPercent = totalPagesRead / monthlyGoal;
+    double progressPercent = _pagesReadThisMonth / monthlyGoal;
     if (progressPercent > 1.0) progressPercent = 1.0;
 
 
@@ -111,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
 
                 // --- A. CARTE PROGRESSION (Noire) ---
-                _buildProgressCard(progressPercent, totalPagesRead, monthlyGoal),
+                _buildProgressCard(progressPercent, _pagesReadThisMonth, monthlyGoal),
 
                 const SizedBox(height: 30),
 
@@ -136,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 CategoryBarChart(books: allBooks),
                 const SizedBox(height: 15),
 
-                // 3. Line Chart (Progression mensuelle) - Placeholder pour l'instant car requiert historique complexe
+                // 3. Line Chart (Progression mensuelle)
                 const MonthlyProgressChart(),
 
                 const SizedBox(height: 30),
@@ -604,8 +610,66 @@ class CategoryBarChart extends StatelessWidget {
 }
 
 // --- 3. LINE CHART : PROGRESSION MENSUELLE ---
-class MonthlyProgressChart extends StatelessWidget {
+class MonthlyProgressChart extends StatefulWidget {
   const MonthlyProgressChart({super.key});
+
+  @override
+  State<MonthlyProgressChart> createState() => _MonthlyProgressChartState();
+}
+
+class _MonthlyProgressChartState extends State<MonthlyProgressChart> {
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<FlSpot> _spots = [];
+  bool _isLoading = true;
+  List<String> _monthsLabels = []; // Stocker les labels des mois
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.currentUser?.usrId;
+
+    if (userId != null) {
+      try {
+        final stats = await _dbHelper.getMonthlyReadingStats(userId);
+        
+        List<FlSpot> spots = [];
+        List<String> labels = [];
+        
+        // Obtenir les 6 derniers mois dynamiquement
+        final now = DateTime.now();
+        for (int i = 5; i >= 0; i--) {
+            final date = DateTime(now.year, now.month - i, 1);
+            final key = DateFormat('yyyy-MM').format(date);
+            final monthName = DateFormat('MMM').format(date); // Jan, Feb...
+            
+            double value = (stats[key] ?? 0).toDouble();
+            
+            // Si on veut une courbe un peu plus jolie quand c'est vide, on peut laisser 0
+            // ou simuler si c'est pour de la démo pure (mais ici on veut fonctionnel)
+            // Pour l'instant, on affiche les vraies données.
+            
+            spots.add(FlSpot((5-i).toDouble(), value));
+            labels.add(monthName);
+        }
+
+        if (mounted) {
+          setState(() {
+            _spots = spots;
+            _monthsLabels = labels;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        debugPrint("Erreur chargement stats mensuelles: $e");
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -620,11 +684,13 @@ class MonthlyProgressChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Monthly Activity", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
+          Text("Monthly Activity (Pages Read)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
           const SizedBox(height: 20),
           SizedBox(
             height: 150,
-            child: LineChart(
+            child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : LineChart(
               LineChartData(
                 gridData: FlGridData(show: false),
                 titlesData: FlTitlesData(
@@ -636,14 +702,13 @@ class MonthlyProgressChart extends StatelessWidget {
                       showTitles: true,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
+                        int index = value.toInt();
+                        if (index < 0 || index >= _monthsLabels.length) return const SizedBox();
+                        // Afficher un label sur 2 pour ne pas surcharger si écran petit
+                        if (index % 2 != 0 && _monthsLabels.length > 4) return const SizedBox(); 
+                        
                         TextStyle style = TextStyle(color: isDark ? AppThemes.textSecondary : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold);
-                        switch(value.toInt()) {
-                          case 0: return Text('Jan', style: style);
-                          case 2: return Text('Mar', style: style);
-                          case 4: return Text('May', style: style);
-                          case 6: return Text('Jul', style: style);
-                          default: return const Text('');
-                        }
+                        return Text(_monthsLabels[index], style: style);
                       },
                     ),
                   ),
@@ -651,14 +716,13 @@ class MonthlyProgressChart extends StatelessWidget {
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 1), FlSpot(1, 3), FlSpot(2, 2), FlSpot(3, 5),
-                      FlSpot(4, 4), FlSpot(5, 7), FlSpot(6, 6),
-                    ],
+                    spots: _spots,
                     isCurved: true,
                     color: isDark ? AppThemes.accentColor : Colors.black,
                     barWidth: 3,
-                    dotData: FlDotData(show: false),
+                    dotData: FlDotData(show: true, getDotPainter: (spot, percent, barData, index) {
+                         return FlDotCirclePainter(radius: 4, color: isDark ? AppThemes.accentColor : Colors.black, strokeWidth: 1, strokeColor: Colors.white);
+                    }),
                     belowBarData: BarAreaData(
                       show: true,
                       color: (isDark ? AppThemes.accentColor : Colors.black).withOpacity(0.05),

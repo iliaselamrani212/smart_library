@@ -18,6 +18,8 @@ class MyBooksScreen extends StatefulWidget {
 class _MyBooksScreenState extends State<MyBooksScreen> {
   String _selectedAuthor = 'All';
   String _selectedCategory = 'All'; // Variable pour la catégorie sélectionnée
+  String _selectedStatus = 'All'; // Variable pour le statut sélectionné
+  String _sortOption = 'Recent'; // Variable pour le tri: 'Recent', 'Oldest', 'Title A-Z', 'Title Z-A'
 
   @override
   void initState() {
@@ -54,6 +56,12 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     categories.sort(); // Tri alphabétique
     return ['All', ...categories];
   }
+  
+  // Statuts possibles (Hardcoded pour correspondre aux valeurs utilisées dans l'app)
+  final List<String> _statuses = ['All', 'Not Read', 'Reading', 'Finished'];
+
+  // Options de tri
+  final List<String> _sortOptions = ['Recent', 'Oldest', 'Title A-Z', 'Title Z-A'];
 
   ImageProvider _buildBookImage(String thumbnail) {
     if (thumbnail.isEmpty) {
@@ -85,7 +93,8 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     final myBooksProvider = Provider.of<MyBooksProvider>(context);
     final favProvider = Provider.of<FavoriteBooksProvider>(context);
 
-    final allBooks = myBooksProvider.myBooks.reversed.toList();
+    // On part de la liste brute sans reverse pour appliquer le tri manuellement plus tard
+    List<Book> allBooks = List.from(myBooksProvider.myBooks);
     final favoriteBooks = favProvider.favoriteBooks;
     final isLoading = myBooksProvider.isLoading || favProvider.isLoading;
 
@@ -101,6 +110,40 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     if (_selectedCategory != 'All') {
       filteredBooks = filteredBooks.where((book) => book.category == _selectedCategory).toList();
     }
+    
+    // 3. Filtrer par Statut
+    if (_selectedStatus != 'All') {
+       filteredBooks = filteredBooks.where((book) {
+         if (_selectedStatus == 'Not Read') {
+           return book.status == 'Not Read' || book.status.isEmpty; // Consider empty as Not Read
+         }
+         return book.status == _selectedStatus;
+       }).toList();
+    }
+
+    // --- LOGIQUE DE TRI ---
+    filteredBooks.sort((a, b) {
+       switch (_sortOption) {
+         case 'Oldest':
+           // Trier par date d'ajout croissante (plus ancien en premier)
+           // On suppose que addedDate est au format ISO 8601 string
+           if (a.addedDate == null) return 1;
+           if (b.addedDate == null) return -1;
+           return a.addedDate!.compareTo(b.addedDate!);
+         case 'Title A-Z':
+           return a.title.compareTo(b.title);
+         case 'Title Z-A':
+           return b.title.compareTo(a.title);
+         case 'Recent':
+         default:
+           // Trier par date d'ajout décroissante (plus récent en premier)
+           // Si addedDate est null, on considère que c'est ancien ou on met à la fin
+           if (a.addedDate == null) return 1;
+           if (b.addedDate == null) return -1;
+           return b.addedDate!.compareTo(a.addedDate!);
+       }
+    });
+
 
     // Récupération dynamique des catégories
     final uniqueCategories = getUniqueCategories(allBooks);
@@ -186,11 +229,11 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                       ),
                       
                       // Affichage des filtres actifs (Feedback visuel)
-                      if (_selectedCategory != 'All' || _selectedAuthor != 'All')
+                      if (_selectedCategory != 'All' || _selectedAuthor != 'All' || _selectedStatus != 'All' || _sortOption != 'Recent')
                          Padding(
                            padding: const EdgeInsets.only(top: 8.0),
                            child: Text(
-                             "Filtered by: ${_selectedCategory != 'All' ? 'Category: $_selectedCategory' : ''} ${_selectedAuthor != 'All' ? 'Author: $_selectedAuthor' : ''}",
+                             "Filtered by: ${_selectedCategory != 'All' ? 'Category: $_selectedCategory ' : ''}${_selectedAuthor != 'All' ? 'Author: $_selectedAuthor ' : ''}${_selectedStatus != 'All' ? 'Status: $_selectedStatus ' : ''}${_sortOption != 'Recent' ? 'Sort: $_sortOption' : ''}",
                              style: TextStyle(color: isDark ? AppThemes.accentColor : const Color(0xFF4F46E5), fontSize: 12),
                            ),
                          ),
@@ -312,8 +355,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
       ),
     );
   }
-  // Cette méthode n'est plus utilisée directement car la liste est maintenant dynamique dans le build
-  // Mais on peut la garder ou la supprimer. J'ai intégré le code directement dans le build pour plus de clarté.
   
   Widget _buildFilterButton(List<Book> allBooks) {
     return Container(
@@ -343,8 +384,23 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Filter Books', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Filter & Sort Books', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
+                  
+                  // -- SORT BY --
+                  const Text('Sort By', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8.0,
+                    children: _sortOptions.map((s) => ChoiceChip(
+                        label: Text(s),
+                        selected: _sortOption == s,
+                        onSelected: (selected) { if(selected) setModalState(() => _sortOption = s); },
+                      )).toList(),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // -- FILTER BY AUTHOR --
                   const Text('Author', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 10),
                   SizedBox(
@@ -361,6 +417,26 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                       )).toList(),
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // -- FILTER BY STATUS --
+                  const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 50,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: _statuses.map((s) => Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(s),
+                          selected: _selectedStatus == s,
+                          onSelected: (selected) { if(selected) setModalState(() => _selectedStatus = s); },
+                        ),
+                      )).toList(),
+                    ),
+                  ),
+
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
