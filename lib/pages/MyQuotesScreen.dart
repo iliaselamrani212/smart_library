@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:smart_library/auth/database_helper.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
-import 'package:smart_library/theme/app_themes.dart';
+import 'package:smart_library/models/books_model.dart';
 import 'AddNoteScreen.dart';
 
 class MyQuotesScreen extends StatefulWidget {
-  const MyQuotesScreen({Key? key}) : super(key: key);
+  final String? bookId;
+
+  const MyQuotesScreen({Key? key, this.bookId}) : super(key: key);
 
   @override
   State<MyQuotesScreen> createState() => _MyQuotesScreenState();
@@ -77,96 +79,240 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+    // 1. Get the current User ID from the Provider
+    final userProvider = context.watch<UserProvider>();
+    final int? userId = userProvider.currentUser?.usrId;
+
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: widget.bookId != null ? AppBar(
+        title: const Text("Book Quotes", style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ) : null,
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToAddNote,
-        backgroundColor: isDark ? AppThemes.accentColor : Colors.black,
-        foregroundColor: isDark ? Colors.black : Colors.white,
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.black,
+        icon: const Icon(Icons.edit, color: Colors.white),
+        label: const Text("Add Note", style: TextStyle(color: Colors.white)),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _dbHelper.getNotes(Provider.of<UserProvider>(context, listen: false).currentUser?.usrId ?? 0),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: userId == null
+          ? const Center(child: Text("Please log in to see your quotes."))
+          : FutureBuilder<List<Map<String, dynamic>>>(
+              // 2. Fetch notes filtered by this specific User ID and optionally book ID
+              future: widget.bookId != null 
+                  ? _dbHelper.getBookNotes(userId, widget.bookId!) 
+                  : _dbHelper.getNotes(userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Text(
-                'No quotes yet. Add one!',
-              ),
-            );
-          }
+                final quotes = snapshot.data ?? [];
 
-          final quotes = snapshot.data!;
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: quotes.length,
-            itemBuilder: (context, index) {
-              final quote = quotes[index];
-              return Card(
-                color: isDark ? AppThemes.darkCardBg : Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  title: Text(
-                    quote['noteText'] ?? 'No text',
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                if (quotes.isEmpty) {
+                  return Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Icon(Icons.format_quote, size: 80, color: Colors.grey.shade300),
+                        const SizedBox(height: 20),
                         Text(
-                          'Page ${quote['pageNumber']}',
-                          style: TextStyle(
-                            color: isDark ? AppThemes.textSecondary : Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          'Added on ${quote['date'] ?? ''}',
-                          style: TextStyle(
-                            color: isDark ? AppThemes.textTertiary : Colors.grey.shade500,
-                            fontSize: 11,
-                          ),
+                          "No quotes saved yet",
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                         ),
                       ],
                     ),
-                  ),
-                  trailing: PopupMenuButton(
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'copy',
-                        onTap: () => _copyToClipboard(quote['noteText'] ?? ''),
-                        child: Text('Copy', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: quotes.length,
+                  itemBuilder: (context, index) {
+                    final quote = quotes[index];
+
+                    return Dismissible(
+                      key: Key(quote['id'].toString()),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) => _deleteQuote(quote['id']),
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.delete, color: Colors.red),
                       ),
-                      PopupMenuItem(
-                        value: 'edit',
-                        onTap: () => _navigateToEditNotePage(quote),
-                        child: Text('Edit', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+                      child: _buildQuoteCard(quote),
+                    );
+                  },
+                );
+              },
+            ),
+    );
+  }
+
+  // UI helper for the card design
+  Widget _buildQuoteCard(Map<String, dynamic> quote) {
+    final bookTitle = Provider.of<MyBooksProvider>(context, listen: false)
+        .myBooks
+        .firstWhere((book) => book.id == quote['bookId'], orElse: () => Book(id: 'unknown', title: 'Unknown Book', authors: [], thumbnail: '', description: '', category: '', status: 'Not Read', pages: 0, totalPages: 0))
+        .title;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.book, size: 18, color: Colors.black54),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        bookTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        onTap: () => _deleteQuote(quote['noteId']),
-                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "Page ${quote['pageNumber'] ?? '?'}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.format_quote_rounded, color: Colors.grey, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  quote['noteText'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.black87,
                   ),
                 ),
-              );
-            },
-          );
-        },
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Divider(color: Colors.grey.shade200),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Added on ${quote['date']}",
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () {
+                      // Navigate to edit screen or show edit dialog
+                      _navigateToEditNotePage(quote);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _deleteQuote(quote['id']);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  void _editQuote(Map<String, dynamic> quote) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final TextEditingController noteController = TextEditingController(text: quote['noteText']);
+        final TextEditingController pageController = TextEditingController(text: quote['pageNumber']?.toString() ?? '');
+
+        return AlertDialog(
+          title: const Text("Edit Note"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: pageController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Page Number"),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteController,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: "Note Text"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final updatedNote = {
+                  'id': quote['id'],
+                  'pageNumber': int.tryParse(pageController.text) ?? 0,
+                  'noteText': noteController.text,
+                };
+
+                await _dbHelper.updateNote(updatedNote);
+                setState(() {}); // Refresh the list
+                Navigator.pop(context);
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:intl/intl.dart'; // Importer pour le formatage de la date
 import 'package:smart_library/pages/edit_book_screen.dart'; // Importer l'écran d'édition
 import 'package:smart_library/theme/app_themes.dart';
+import 'package:smart_library/pages/MyQuotesScreen.dart';
 
 import '../providers/favorites_provider.dart';
 import 'layout.dart';
@@ -236,7 +237,16 @@ void _saveProgress() {
           onPressed: () => Navigator.pop(context), 
         ),
         actions: [
-          IconButton(icon: Icon(Icons.format_quote, color: isDark ? Colors.white : Colors.black), onPressed:(){}),
+          IconButton(icon: Icon(Icons.format_quote, color: isDark ? Colors.white : Colors.black), onPressed:(){
+            if (_displayedBook != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyQuotesScreen(bookId: _displayedBook!.id),
+                ),
+              );
+            }
+          }),
           IconButton(icon: Icon(Icons.more_horiz, color: isDark ? Colors.white : Colors.black), onPressed: _showOptions),
         ],
       ),

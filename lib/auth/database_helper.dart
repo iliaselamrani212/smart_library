@@ -250,24 +250,7 @@ class DatabaseHelper{
 
   Future<List<Map<String, dynamic>>> getReadingHistory(int usrId) async {
     final Database db = await initDB();
-    return await db.rawQuery(
-      '''
-      SELECT 
-        rh.bookId,
-        rh.usrId,
-        rh.startDate,
-        rh.endDate,
-        rh.status,
-        mb.title,
-        mb.thumbnail,
-        mb.authors
-      FROM reading_history rh
-      LEFT JOIN mybooks mb ON rh.bookId = mb.id AND rh.usrId = mb.usrId
-      WHERE rh.usrId = ?
-      ORDER BY rh.startDate DESC
-      ''',
-      [usrId],
-    );
+    return await db.query("reading_history", where: "usrId = ?", whereArgs: [usrId]);
   }
 
   Future<void> updateReadingHistory(String bookId, int usrId, String status) async {
@@ -328,6 +311,11 @@ class DatabaseHelper{
   Future<List<Map<String, dynamic>>> getNotes(int usrId) async {
      final Database db = await initDB();
      return await db.query("notes", where: "usrId = ?", whereArgs: [usrId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getBookNotes(int usrId, String bookId) async {
+     final Database db = await initDB();
+     return await db.query("notes", where: "usrId = ? AND bookId = ?", whereArgs: [usrId, bookId]);
   }
 
   Future<int> insertNote(Map<String, dynamic> note) async {
