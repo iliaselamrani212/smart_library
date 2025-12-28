@@ -29,13 +29,13 @@ class _AddBookScreenState extends State<AddBookScreen> {
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  
+  // 1. ADDED: Controller for Pages
+  final TextEditingController _pagesController = TextEditingController(); 
 
   // State Variables
-  String _readingStatus = 'To Read';
-  dynamic _selectedImage; // Can be File (Local) or String (URL)
+  dynamic _selectedImage; 
   bool _isFavorite = false;
-
-  final List<String> _statusOptions = ['To Read', 'Reading', 'Finished'];
 
   // --- 1. SCAN ISBN & FETCH FROM API ---
   Future<void> _scanISBN() async {
@@ -61,9 +61,11 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _yearController.text = book['publishedDate']?.split('-')[0] ?? '';
               _categoryController.text = (book['categories'] as List?)?.join(', ') ?? 'General';
               _noteController.text = book['description'] ?? '';
+              
+              // 2. ADDED: Fetch page count from API
+              _pagesController.text = book['pageCount']?.toString() ?? '';
 
               if (book['imageLinks'] != null && book['imageLinks']['thumbnail'] != null) {
-                // Ensure https for thumbnail
                 _selectedImage = book['imageLinks']['thumbnail'].replaceFirst('http://', 'https://');
               }
             });
@@ -78,7 +80,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
     }
   }
 
-  // --- 2. PICK IMAGE (CAMERA/GALLERY) ---
+  // --- 2. PICK IMAGE ---
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     showModalBottomSheet(
@@ -137,12 +139,13 @@ class _AddBookScreenState extends State<AddBookScreen> {
           thumbnail: imagePath,
           description: _noteController.text,
           category: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
+          // 3. ADDED: Save total pages (default to 0 if empty) and initialize progress
+          totalPages: int.tryParse(_pagesController.text) ?? 0, 
+          pages: 0, // Current progress starts at 0
         );
 
-        // Add to My Books Provider
         await Provider.of<MyBooksProvider>(context, listen: false).addBook(newBook, userId);
 
-        // Add to Favorites if selected
         if (_isFavorite) {
           final favProvider = Provider.of<FavoriteBooksProvider>(context, listen: false);
           favProvider.setCurrentUserId(userId);
@@ -234,17 +237,41 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _buildTextField(_authorController, "Author(s)", Icons.person_outline),
               
               const SizedBox(height: 15),
+              // 4. ADDED: Modified Row to include Pages
               Row(
                 children: [
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _buildLabel("Category"),
-                    _buildTextField(_categoryController, "Category", Icons.category_outlined),
-                  ])),
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      children: [
+                        _buildLabel("Category"),
+                        _buildTextField(_categoryController, "Category", Icons.category_outlined),
+                      ]
+                    )
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _buildLabel("Year"),
-                    _buildTextField(_yearController, "Year", Icons.calendar_today, isNumber: true),
-                  ])),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      children: [
+                        _buildLabel("Year"),
+                        _buildTextField(_yearController, "Year", Icons.calendar_today, isNumber: true),
+                      ]
+                    )
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      children: [
+                        _buildLabel("Pages"),
+                        _buildTextField(_pagesController, "123", Icons.format_list_numbered, isNumber: true),
+                      ]
+                    )
+                  ),
                 ],
               ),
               
@@ -253,7 +280,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _buildTextField(_noteController, "Description...", Icons.notes, maxLines: 3, isRequired: false),
 
               const SizedBox(height: 20),
-              _buildLabel("Add to Favorites"),
               SwitchListTile(
                 value: _isFavorite,
                 activeColor: Colors.black,
@@ -286,7 +312,10 @@ class _AddBookScreenState extends State<AddBookScreen> {
     }
   }
 
-  Widget _buildLabel(String text) => Text(text, style: const TextStyle(fontWeight: FontWeight.bold));
+  Widget _buildLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+  );
 
   Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {bool isNumber = false, int maxLines = 1, bool isRequired = true}) {
     return TextFormField(
@@ -295,8 +324,9 @@ class _AddBookScreenState extends State<AddBookScreen> {
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       validator: (v) => isRequired && (v == null || v.isEmpty) ? "Required" : null,
       decoration: InputDecoration(
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, size: 20),
         hintText: hint,
+        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
         filled: true, fillColor: const Color(0xFFF5F7FA),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       ),

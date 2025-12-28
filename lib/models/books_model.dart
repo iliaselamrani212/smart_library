@@ -19,7 +19,7 @@ class Book {
     required this.category,
     this.status = 'Not Read',
     this.pages = 0, 
-    this.totalPages = 0, // Default
+    this.totalPages = 200, // Default
     this.addedDate,
   });
 
@@ -35,7 +35,7 @@ class Book {
       category: map['category']?.toString() ?? 'General', 
       status: map['status']?.toString() ?? 'Not Read',
       pages: (map['pages'] as int?) ?? 0,
-      totalPages: (map['totalPages'] as int?) ?? 0, 
+      totalPages: (map['totalPages'] as int?) ?? 200, 
       addedDate: map['addedDate'] as String?,
     );
   }
