@@ -42,12 +42,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       if (_displayedBook != null) {
         final provider = Provider.of<MyBooksProvider>(context, listen: false);
         final index = provider.myBooks.indexWhere((b) => b.id == _displayedBook!.id);
-        
-        setState(() {
-          _bookIndex = index;
-          _currentPage = _displayedBook!.pages.toDouble();
-          _pageController.text = _currentPage.toInt().toString();
-        });
+
+        if (mounted) {
+          setState(() {
+            _bookIndex = index;
+            _currentPage = _displayedBook!.pages.toDouble();
+            _pageController.text = _currentPage.toInt().toString();
+          });
+        }
       }
     });
   }
@@ -118,12 +120,11 @@ void _saveProgress() {
   }
 
   void _onPageInputChanged(String value) {
-    int? newPage = int.tryParse(value);
-    if (newPage != null) {
-      if (newPage > _totalPages) newPage = _totalPages;
-      if (newPage < 0) newPage = 0;
-
-      setState(() => _currentPage = newPage!.toDouble());
+    final page = int.tryParse(value) ?? 0;
+    if (page >= 0 && page <= _totalPages) {
+      setState(() {
+        _currentPage = page.toDouble();
+      });
     }
   }
 
@@ -141,30 +142,25 @@ void _saveProgress() {
                 leading: const Icon(Icons.edit, color: Colors.blue),
                 title: const Text("Modify"),
                 onTap: () async {
-                  // Pass _displayedBook instead of widget.book
+                  Navigator.pop(context); // Close modal before navigation
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => EditBookScreen(book: _displayedBook!)),
                   );
 
                   if (result != null && result is Book) {
-                    // Update the local state with the returned book
-                    setState(() {
-                      _displayedBook = result;
-                      _totalPages = result.totalPages;
-                      _currentPage = result.pages.toDouble();
-                      _pageController.text = _currentPage.toInt().toString();
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _displayedBook = result;
+                        _totalPages = result.totalPages;
+                        _currentPage = result.pages.toDouble();
+                        _pageController.text = _currentPage.toInt().toString();
+                      });
+                    }
 
                     final userId = Provider.of<UserProvider>(context, listen: false).currentUser?.usrId;
                     if (userId != null) {
-                       // The database update is already done in EditBookScreen, but we can refresh the list if needed
-                       // provider.updateBook(result, userId); // Already done in EditBookScreen
-                       
-                       // Re-fetch data to be safe and update global provider state
-                       await Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
-                       
-                       Navigator.pop(context); // Close modal
+                      await Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
                     }
                   }
                 },
@@ -174,15 +170,20 @@ void _saveProgress() {
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text("Delete", style: TextStyle(color: Colors.red)),
                 onTap: () async {
+                  Navigator.pop(context); // Close modal before deletion
                   final bookId = _displayedBook!.id;
                   final userId = Provider.of<UserProvider>(context, listen: false).currentUser?.usrId;
-                  await Provider.of<FavoriteBooksProvider>(context, listen: false).removeFavorite(bookId);
-                  await Provider.of<MyBooksProvider>(context, listen: false).removeBook(bookId, userId!);
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => Layout(id_page: 1)),
+                  if (userId != null) {
+                    await Provider.of<FavoriteBooksProvider>(context, listen: false).removeFavorite(bookId);
+                    await Provider.of<MyBooksProvider>(context, listen: false).removeBook(bookId, userId);
+                    if (mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => Layout(id_page: 1)),
                         (route) => false,
-                  );
+                      );
+                    }
+                  }
                 },
               ),
             ],
@@ -347,10 +348,12 @@ void _saveProgress() {
                           min: 0, 
                           max: _totalPages > 0 ? _totalPages.toDouble() : 1, 
                           activeColor: Colors.black,
-                          onChanged: (value) => setState(() {
-                            _currentPage = value;
-                            _pageController.text = value.toInt().toString();
-                          }),
+                          onChanged: (value) {
+                            setState(() {
+                              _currentPage = value;
+                              _pageController.text = value.toInt().toString();
+                            });
+                          },
                         ),
                         
                         Row(
@@ -396,7 +399,14 @@ void _saveProgress() {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   elevation: 0,
                 ),
-                child: Text(isFinished ? 'Finished' : "Mark as Finished", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                child: Text(
+                  isFinished ? 'Finished' : "Mark as Finished",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 80),

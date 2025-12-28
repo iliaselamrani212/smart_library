@@ -9,7 +9,9 @@ import 'package:smart_library/models/books_model.dart';
 import 'package:image_cropper/image_cropper.dart';
 
 class AddNoteScreen extends StatefulWidget {
-  const AddNoteScreen({Key? key}) : super(key: key);
+  final Map<String, dynamic>? note;
+
+  const AddNoteScreen({Key? key, this.note}) : super(key: key);
 
   @override
   State<AddNoteScreen> createState() => _AddNoteScreenState();
@@ -26,16 +28,36 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
   void initState() {
     super.initState();
 
-    // --- CORRECTION CRITIQUE ICI ---
-    // On attend que la page soit construite avant de charger les livres
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (widget.note != null) {
+      _pageController.text = widget.note!['pageNumber']?.toString() ?? '';
+      _noteController.text = widget.note!['noteText'] ?? '';
+
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final userId = userProvider.currentUser?.usrId;
       if (userId != null) {
-        Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
+        Provider.of<MyBooksProvider>(context, listen: false)
+            .fetchUserBooks(userId)
+            .then((_) {
+          final booksProvider = Provider.of<MyBooksProvider>(context, listen: false);
+          final books = booksProvider.myBooks;
+          _selectedBook = books.firstWhere(
+            (book) => book.id == widget.note!['bookId'],
+            orElse: () => Book(
+              id: '',
+              title: 'Unknown Book',
+              authors: [],
+              thumbnail: '',
+              description: '',
+              category: 'General',
+              status: 'Not Read',
+              pages: 0,
+              totalPages: 0,
+            ),
+          );
+          setState(() {});
+        });
       }
-    });
-    // -------------------------------
+    }
   }
 
   @override
@@ -57,9 +79,23 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       return;
     }
 
-    if (_selectedBook == null || _noteController.text.isEmpty) {
+    if (_selectedBook == null && widget.note == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a book and enter a note.")),
+        const SnackBar(content: Text("Please select a book.")),
+      );
+      return;
+    }
+
+    if (_pageController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a page number.")),
+      );
+      return;
+    }
+
+    if (_noteController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please write a note.")),
       );
       return;
     }
@@ -67,15 +103,29 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
     try {
       final noteForDb = {
         'usrId': userId,
-        'bookId': _selectedBook!.title,
-        'content': _noteController.text,
-        'createdAt': "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
+        'bookId': _selectedBook?.id ?? widget.note!['bookId'],
+        'pageNumber': _pageController.text,
+        'noteText': _noteController.text,
+        'date': widget.note != null
+            ? widget.note!['date']
+            : "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
       };
 
-      await _dbHelper.insertNote(noteForDb);
+      if (widget.note != null) {
+        noteForDb['id'] = widget.note!['id'];
+        await _dbHelper.updateNote(noteForDb);
+      } else {
+        await _dbHelper.insertNote(noteForDb);
+      }
 
       if (!mounted) return;
       Navigator.pop(context, true);
+
+      // Notify listeners to refresh the UI immediately
+      final quotesProvider = Provider.of<MyBooksProvider>(context, listen: false);
+      quotesProvider.fetchUserBooks(userId).then((_) {
+        setState(() {}); // Ensure the UI updates immediately after saving
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to save: $e"), backgroundColor: Colors.red),

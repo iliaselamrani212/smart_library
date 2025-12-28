@@ -68,6 +68,9 @@ class DatabaseHelper{
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       usrId INTEGER,
       bookId TEXT,
+      pageNumber INTEGER, -- Column for page number
+      noteText TEXT, -- Column for note text
+      date TEXT, -- Added column for date
       content TEXT,
       createdAt TEXT,
       FOREIGN KEY (usrId) REFERENCES users(usrId)
@@ -89,7 +92,7 @@ class DatabaseHelper{
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, databaseName);
 
-    return openDatabase(path, version: 7, 
+    return openDatabase(path, version: 10, 
     onCreate: (db,version)async{
       await db.execute(user);
       await db.execute(mybooks);
@@ -120,6 +123,27 @@ class DatabaseHelper{
           } catch (e) {
              print("Migration error v7: $e");
           }
+        }
+        if (oldVersion < 8) {
+           try {
+             await db.execute("ALTER TABLE notes ADD COLUMN pageNumber INTEGER DEFAULT 0");
+           } catch (e) {
+             print("Migration error v8 (ignored if column exists): $e");
+           }
+        }
+        if (oldVersion < 9) {
+           try {
+             await db.execute("ALTER TABLE notes ADD COLUMN noteText TEXT DEFAULT ''");
+           } catch (e) {
+             print("Migration error v9 (ignored if column exists): $e");
+           }
+        }
+        if (oldVersion < 10) {
+           try {
+             await db.execute("ALTER TABLE notes ADD COLUMN date TEXT DEFAULT ''");
+           } catch (e) {
+             print("Migration error v10 (ignored if column exists): $e");
+           }
         }
       },
     );
@@ -297,6 +321,16 @@ class DatabaseHelper{
   Future<int> deleteNote(int id) async {
      final Database db = await initDB();
      return await db.delete("notes", where: "id = ?", whereArgs: [id]);
+  }
+
+  Future<int> updateNote(Map<String, dynamic> note) async {
+    final Database db = await initDB();
+    return await db.update(
+      "notes",
+      note,
+      where: "id = ?",
+      whereArgs: [note['id']],
+    );
   }
 
 

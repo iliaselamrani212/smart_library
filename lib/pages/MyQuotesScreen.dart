@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_library/auth/database_helper.dart';
 import 'package:smart_library/providers/user_provider.dart';
+import 'package:smart_library/providers/my_books_provider.dart';
+import 'package:smart_library/models/books_model.dart';
 import 'AddNoteScreen.dart';
 
 class MyQuotesScreen extends StatefulWidget {
@@ -38,6 +40,39 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Copied to clipboard!")),
     );
+  }
+
+  void _navigateToEditNotePage(Map<String, dynamic> quote) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddNoteScreen(
+          note: quote,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.currentUser?.usrId;
+    if (userId != null) {
+      Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.currentUser?.usrId;
+    if (userId != null) {
+      Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId).then((_) {
+        setState(() {}); // Ensure the UI updates after fetching data
+      });
+    }
   }
 
   @override
@@ -112,6 +147,11 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
 
   // UI helper for the card design
   Widget _buildQuoteCard(Map<String, dynamic> quote) {
+    final bookTitle = Provider.of<MyBooksProvider>(context, listen: false)
+        .myBooks
+        .firstWhere((book) => book.id == quote['bookId'], orElse: () => Book(id: 'unknown', title: 'Unknown Book', authors: [], thumbnail: '', description: '', category: '', status: 'Not Read', pages: 0, totalPages: 0))
+        .title;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -139,7 +179,7 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        quote['bookTitle'] ?? 'Unknown Book',
+                        bookTitle,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -192,16 +232,77 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                 "Added on ${quote['date']}",
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
               ),
-              IconButton(
-                icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
-                onPressed: () => _copyToClipboard(quote['noteText'] ?? ''),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () {
+                      // Navigate to edit screen or show edit dialog
+                      _navigateToEditNotePage(quote);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _deleteQuote(quote['id']);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  void _editQuote(Map<String, dynamic> quote) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final TextEditingController noteController = TextEditingController(text: quote['noteText']);
+        final TextEditingController pageController = TextEditingController(text: quote['pageNumber']?.toString() ?? '');
+
+        return AlertDialog(
+          title: const Text("Edit Note"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: pageController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Page Number"),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteController,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: "Note Text"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final updatedNote = {
+                  'id': quote['id'],
+                  'pageNumber': int.tryParse(pageController.text) ?? 0,
+                  'noteText': noteController.text,
+                };
+
+                await _dbHelper.updateNote(updatedNote);
+                setState(() {}); // Refresh the list
+                Navigator.pop(context);
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

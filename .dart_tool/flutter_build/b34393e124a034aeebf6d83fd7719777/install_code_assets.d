@@ -1,0 +1,1 @@
+ E:\\ENIAD_IA\\smart_library\\.dart_tool\\flutter_build\\b34393e124a034aeebf6d83fd7719777\\native_assets.json: 
