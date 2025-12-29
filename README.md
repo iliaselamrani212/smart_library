@@ -6,7 +6,7 @@ Getting started
 1. Install Flutter and required SDKs.
 2. From the project root run: 
  
-```powershell
+```powershell 
 flutter pub get
 flutter run
 ```
