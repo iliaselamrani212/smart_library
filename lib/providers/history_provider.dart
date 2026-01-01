@@ -3,7 +3,7 @@ import 'package:smart_library/auth/database_helper.dart';
 
 class HistoryProvider with ChangeNotifier {
   List<Map<String, dynamic>> _history = [];
-  bool _isLoading = false;//to make sure the data base is free
+  bool _isLoading = false;
 
   List<Map<String, dynamic>> get history => _history;
   bool get isLoading => _isLoading;
@@ -13,7 +13,6 @@ class HistoryProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Using the join query we discussed earlier to get book titles/images
       _history = await DatabaseHelper().getReadingHistory(userId);
       debugPrint("History fetched: ${_history.length} items");
       for (var item in _history) {

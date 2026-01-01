@@ -39,7 +39,7 @@ class Users {
         usrId: json["usrId"],
         fullName: json["fullName"],
         email: json["email"], 
-        password: json["usrPassword"], // Matches your database column name
+        password: json["usrPassword"], 
         profilePicture: json["profilePicture"],
       );
 
