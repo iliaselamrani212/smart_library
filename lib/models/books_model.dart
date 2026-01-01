@@ -6,8 +6,8 @@ class Book {
   final String description;
   final String category;
   final String status;
-  final int pages; // Current Progress (Pages lues)
-  final int totalPages; // Total length of the book (Nombre total de pages)
+  final int pages;
+  final int totalPages;
   final String? addedDate;
 
   Book({
@@ -19,7 +19,7 @@ class Book {
     required this.category,
     this.status = 'Not Read',
     this.pages = 0, 
-    this.totalPages = 200, // Default
+    this.totalPages = 200,
     this.addedDate,
   });
 
@@ -71,9 +71,9 @@ class Book {
       description: volumeInfo['description'] ?? '',
       category: categoryList != null ? categoryList.join(', ') : 'General',
       status: 'Not Read',
-      pages: 0, // Start at 0 progress
-      totalPages: pCount, // Store the total length
-      addedDate: DateTime.now().toIso8601String(), // Set current date on creation from API
+      pages: 0,
+      totalPages: pCount,
+      addedDate: DateTime.now().toIso8601String(),
     );
   }
 

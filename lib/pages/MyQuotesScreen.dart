@@ -21,22 +21,20 @@ class MyQuotesScreen extends StatefulWidget {
 class _MyQuotesScreenState extends State<MyQuotesScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // Navigation to the AddNoteScreen
   void _navigateToAddNote() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddNoteScreen()),
     );
 
-    // If result is true, it means a note was saved to the DB
     if (result == true) {
-      setState(() {}); // This triggers the FutureBuilder to reload the list
+      setState(() {});
     }
   }
 
   void _deleteQuote(int noteId) async {
     await _dbHelper.deleteNote(noteId);
-    setState(() {}); // Refresh the list after deleting
+    setState(() {});
   }
 
   void _navigateToEditNotePage(Map<String, dynamic> quote) {
@@ -67,14 +65,13 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     final userId = userProvider.currentUser?.usrId;
     if (userId != null) {
       Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId).then((_) {
-        setState(() {}); // Ensure the UI updates after fetching data
+        setState(() {});
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Get the current User ID from the Provider
     final userProvider = context.watch<UserProvider>();
     final int? userId = userProvider.currentUser?.usrId;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -96,7 +93,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
       body: userId == null
           ? const Center(child: Text("Please log in to see your quotes."))
           : FutureBuilder<List<Map<String, dynamic>>>(
-              // 2. Fetch notes filtered by this specific User ID and optionally book ID
               future: widget.bookId != null 
                   ? _dbHelper.getBookNotes(userId, widget.bookId!) 
                   : _dbHelper.getNotes(userId),
@@ -151,7 +147,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
     );
   }
 
-  // UI helper for the card design
   Widget _buildQuoteCard(Map<String, dynamic> quote, bool isDark) {
     final bookTitle = Provider.of<MyBooksProvider>(context, listen: false)
         .myBooks
@@ -243,7 +238,6 @@ class _MyQuotesScreenState extends State<MyQuotesScreen> {
                   IconButton(
                     icon: Icon(Icons.edit, color: isDark ? AppThemes.accentColor : Colors.blue),
                     onPressed: () {
-                      // Navigate to edit screen or show edit dialog
                       _navigateToEditNotePage(quote);
                     },
                   ),

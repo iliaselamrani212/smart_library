@@ -17,7 +17,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch history when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHistory();
     });
@@ -64,16 +63,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ? const Center(child: CircularProgressIndicator(color: Colors.blue))
           : RefreshIndicator(
               color: Colors.blue,
-              onRefresh: _loadHistory, // Allows pulling down to refresh data
+              onRefresh: _loadHistory, 
               child: historyProvider.history.isEmpty
                   ? _buildEmptyState(isDark)
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                      // Ensure the list is always scrollable for RefreshIndicator to work
                       physics: const AlwaysScrollableScrollPhysics(), 
                       itemCount: historyProvider.history.length,
                       itemBuilder: (context, index) {
-                        // Display newest items at the top
                         final item = historyProvider.history[historyProvider.history.length - 1 - index];
                         bool isLast = index == historyProvider.history.length - 1;
                         return _buildHistoryItem(item, isLast, isDark);
@@ -84,12 +81,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildHistoryItem(Map<String, dynamic> item, bool isLast, bool isDark) {
-    // Determine status safely
     String status = item['status'] ?? 'Not Read';
     bool isFinished = status == 'Finished';
     
-    // Use startDate as the main event date. 
-    // If endDate is missing but book is finished, fallback to startDate.
     String dateLabel = _formatDate(item['startDate']);
     String? finishedDate = item['endDate'];
 
@@ -97,7 +91,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- LEFT COLUMN: TIMELINE ---
           Column(
             children: [
               Container(
@@ -127,7 +120,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(width: 16),
 
-          // --- RIGHT COLUMN: CONTENT ---
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 30.0),
@@ -171,7 +163,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               const SizedBox(height: 6),
                               _buildStatusBadge(status, isDark),
                               
-                              // Show Finished Date only if valid
                               if (isFinished) ...[
                                 const SizedBox(height: 6),
                                 Row(
@@ -179,7 +170,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     const Icon(Icons.check_circle_outline, size: 12, color: Colors.green),
                                     const SizedBox(width: 4),
                                     Text(
-                                      // If endDate is null, use startDate, or just say "Completed"
                                       finishedDate != null 
                                           ? "Finished: ${_formatDate(finishedDate)}" 
                                           : "Completed",
@@ -259,7 +249,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildEmptyState(bool isDark) {
-    return ListView( // Use ListView to allow RefreshIndicator to work on empty state
+    return ListView( 
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(

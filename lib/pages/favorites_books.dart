@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 class FavoritesBooksWidget extends StatelessWidget {
   const FavoritesBooksWidget({super.key});
 
-  // Helper to determine if image is local File, Network, or Asset
   ImageProvider _buildImage(String thumbnail) {
     if (thumbnail.isEmpty) return const AssetImage('assets/images/empty.jpg');
     if (thumbnail.startsWith('http')) return NetworkImage(thumbnail);
@@ -18,7 +17,6 @@ class FavoritesBooksWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final favoritesProvider = Provider.of<FavoriteBooksProvider>(context);
     
-    // Theme-based colors
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2B2B2B) : Colors.blue[50];
 
@@ -26,7 +24,6 @@ class FavoritesBooksWidget extends StatelessWidget {
       return const Center(child: CircularProgressIndicator(color: Colors.blue));
     }
 
-    // Updated getter name from Provider
     final books = favoritesProvider.favoriteBooks;
 
     if (books.isEmpty) {

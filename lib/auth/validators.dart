@@ -1,5 +1,3 @@
-
-// validators
 class Validators {
   static String? validateName(String? value) {
     if (value == null || value.isEmpty) {

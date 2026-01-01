@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smart_library/pages/book_datails_screen.dart'; // Ensure filename matches exactly
+import 'package:smart_library/pages/book_datails_screen.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:smart_library/providers/favorites_provider.dart';
@@ -17,9 +17,9 @@ class MyBooksScreen extends StatefulWidget {
 
 class _MyBooksScreenState extends State<MyBooksScreen> {
   String _selectedAuthor = 'All';
-  String _selectedCategory = 'All'; // Variable pour la catégorie sélectionnée
-  String _selectedStatus = 'All'; // Variable pour le statut sélectionné
-  String _sortOption = 'Recent'; // Variable pour le tri: 'Recent', 'Oldest', 'Title A-Z', 'Title Z-A'
+  String _selectedCategory = 'All';
+  String _selectedStatus = 'All';
+  String _sortOption = 'Recent';
 
   @override
   void initState() {
@@ -39,28 +39,22 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     }
   }
 
-  // Récupérer les auteurs uniques
   List<String> getUniqueAuthors(List<Book> books) {
     final authors = books.expand((book) => book.authors).map((a) => a.toString()).toSet().toList();
     return ['All', ...authors];
   }
 
-  // Récupérer les catégories uniques depuis la liste des livres
   List<String> getUniqueCategories(List<Book> books) {
-    // On suppose que le modèle Book a un champ 'category'.
-    // Si la catégorie est vide ou null, on peut la mettre dans "General" ou l'ignorer.
     final categories = books
         .map((book) => book.category.isNotEmpty ? book.category : 'General')
         .toSet()
         .toList();
-    categories.sort(); // Tri alphabétique
+    categories.sort();
     return ['All', ...categories];
   }
   
-  // Statuts possibles (Hardcoded pour correspondre aux valeurs utilisées dans l'app)
   final List<String> _statuses = ['All', 'Not Read', 'Reading', 'Finished'];
 
-  // Options de tri
   final List<String> _sortOptions = ['Recent', 'Oldest', 'Title A-Z', 'Title Z-A'];
 
   ImageProvider _buildBookImage(String thumbnail) {
@@ -93,40 +87,32 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     final myBooksProvider = Provider.of<MyBooksProvider>(context);
     final favProvider = Provider.of<FavoriteBooksProvider>(context);
 
-    // On part de la liste brute sans reverse pour appliquer le tri manuellement plus tard
     List<Book> allBooks = List.from(myBooksProvider.myBooks);
     final favoriteBooks = favProvider.favoriteBooks;
     final isLoading = myBooksProvider.isLoading || favProvider.isLoading;
 
-    // --- LOGIQUE DE FILTRAGE ---
     List<Book> filteredBooks = allBooks;
 
-    // 1. Filtrer par Auteur
     if (_selectedAuthor != 'All') {
       filteredBooks = filteredBooks.where((book) => book.authors.contains(_selectedAuthor)).toList();
     }
 
-    // 2. Filtrer par Catégorie
     if (_selectedCategory != 'All') {
       filteredBooks = filteredBooks.where((book) => book.category == _selectedCategory).toList();
     }
     
-    // 3. Filtrer par Statut
     if (_selectedStatus != 'All') {
        filteredBooks = filteredBooks.where((book) {
          if (_selectedStatus == 'Not Read') {
-           return book.status == 'Not Read' || book.status.isEmpty; // Consider empty as Not Read
+           return book.status == 'Not Read' || book.status.isEmpty;
          }
          return book.status == _selectedStatus;
        }).toList();
     }
 
-    // --- LOGIQUE DE TRI ---
     filteredBooks.sort((a, b) {
        switch (_sortOption) {
          case 'Oldest':
-           // Trier par date d'ajout croissante (plus ancien en premier)
-           // On suppose que addedDate est au format ISO 8601 string
            if (a.addedDate == null) return 1;
            if (b.addedDate == null) return -1;
            return a.addedDate!.compareTo(b.addedDate!);
@@ -136,8 +122,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
            return b.title.compareTo(a.title);
          case 'Recent':
          default:
-           // Trier par date d'ajout décroissante (plus récent en premier)
-           // Si addedDate est null, on considère que c'est ancien ou on met à la fin
            if (a.addedDate == null) return 1;
            if (b.addedDate == null) return -1;
            return b.addedDate!.compareTo(a.addedDate!);
@@ -145,7 +129,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     });
 
 
-    // Récupération dynamique des catégories
     final uniqueCategories = getUniqueCategories(allBooks);
 
     return Scaffold(
@@ -166,13 +149,12 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                         'Your Favorites',
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
                       )
-                          , // <--- Ceci remplace null
+                          ,
                       favoriteBooks.isEmpty ? SizedBox.shrink() : const SizedBox(height: 16),
                       favoriteBooks.isEmpty ? SizedBox.shrink() : _buildFavoritesList(favoriteBooks),
 
                       favoriteBooks.isEmpty ? SizedBox.shrink() : const SizedBox(height: 32),
                       
-                      // --- SECTION CATÉGORIES DYNAMIQUE ---
                       Text(
                         'Categories',
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
@@ -228,7 +210,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                         ],
                       ),
                       
-                      // Affichage des filtres actifs (Feedback visuel)
                       if (_selectedCategory != 'All' || _selectedAuthor != 'All' || _selectedStatus != 'All' || _sortOption != 'Recent')
                          Padding(
                            padding: const EdgeInsets.only(top: 8.0),
@@ -262,8 +243,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
       ),
     );
   }
-
-  // --- SUB-WIDGETS ---
 
   Widget _buildFavoritesList(List<Book> books) {
     return SizedBox(
@@ -387,7 +366,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                   const Text('Filter & Sort Books', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
                   
-                  // -- SORT BY --
                   const Text('Sort By', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 10),
                   Wrap(
@@ -400,7 +378,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // -- FILTER BY AUTHOR --
                   const Text('Author', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 10),
                   SizedBox(
@@ -419,7 +396,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // -- FILTER BY STATUS --
                   const Text('Status', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 10),
                   SizedBox(

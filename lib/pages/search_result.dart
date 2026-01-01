@@ -12,14 +12,11 @@ class Search extends StatelessWidget{
   });
 
   @override
-
-
-  @override
   Widget build(BuildContext context) {
     final currentTheme = Theme.of(context);
     final cardColor = Theme.of(context).brightness == Brightness.dark
-        ? Color(0xFF2B2B2B) // Dark theme
-        : Colors.blue[50]; // Light theme
+        ? Color(0xFF2B2B2B)
+        : Colors.blue[50];
 
     return Scaffold(
       backgroundColor: currentTheme.brightness == Brightness.dark ? Colors.black : Colors.white,
@@ -48,7 +45,7 @@ class Search extends StatelessWidget{
                   onTap: (){
                     showDialog(
                       context: context,
-                      barrierColor: Colors.black.withOpacity(0.5), // background opacity
+                      barrierColor: Colors.black.withOpacity(0.5),
                       builder: (context) => ShowSearch(book: book),
                     );
                   },
@@ -57,19 +54,6 @@ class Search extends StatelessWidget{
                       : Container(width: 50, color: Colors.grey),
                   title: Text(book.title,maxLines: 1,style: TextStyle(overflow: TextOverflow.ellipsis),),
                   subtitle: Text(book.authors.join(', '),maxLines: 1,style: TextStyle(overflow: TextOverflow.ellipsis),),
-                  // trailing: IconButton(
-                  //   icon: const Icon(Icons.favorite_border),
-                  //   onPressed: () async {
-                  //     await Provider.of<FavoriteBooksProvider>(context, listen: false).addFavorite(book);
-                  //     ScaffoldMessenger.of(context).showSnackBar(
-                  //       const SnackBar(
-                  //           backgroundColor: Colors.green,
-                  //           behavior: SnackBarBehavior.floating, // Make it float
-                  //           margin: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-                  //           content: Text('Book saved to favorites!',style: TextStyle(color: Colors.white),)),
-                  //     );
-                  //   },
-                  // ),
                 ),
               );
             },
@@ -80,7 +64,6 @@ class Search extends StatelessWidget{
   }
 }
 
-// show search book detail
 class ShowSearch extends StatelessWidget {
   final Book book;
   const ShowSearch({super.key, required this.book});
@@ -93,7 +76,7 @@ class ShowSearch extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: currentTheme.brightness == Brightness.dark ? Colors.grey[850] : Colors.white, // Main dialog box color
+          color: currentTheme.brightness == Brightness.dark ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -127,7 +110,7 @@ class ShowSearch extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating, // Make it float
+                            behavior: SnackBarBehavior.floating,
                             margin: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
                             duration: Duration(seconds: 1),
                             content: Text('Book saved to favorites!',style: TextStyle(color: Colors.white),)),

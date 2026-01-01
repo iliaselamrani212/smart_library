@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
-import 'package:smart_library/auth/database_helper.dart'; // Import DatabaseHelper
+import 'package:smart_library/auth/database_helper.dart'; 
 import 'package:smart_library/models/books_model.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
 import 'package:smart_library/providers/favorites_provider.dart';
@@ -11,7 +11,6 @@ import 'package:smart_library/theme/app_themes.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
-  // Callback pour changer d'onglet depuis le Home
   final Function(int) onTabChange;
 
   const HomeScreen({Key? key, required this.onTabChange}) : super(key: key);
@@ -21,13 +20,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DatabaseHelper _dbHelper = DatabaseHelper(); // Instance of DatabaseHelper
-  int _pagesReadThisMonth = 0; // State variable for pages read this month
+  final DatabaseHelper _dbHelper = DatabaseHelper(); 
+  int _pagesReadThisMonth = 0; 
 
   @override
   void initState() {
     super.initState();
-    // Charger les données dès l'affichage de l'écran d'accueil
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -38,12 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final userId = userProvider.currentUser?.usrId;
 
     if (userId != null) {
-      // On déclenche le chargement des livres si ce n'est pas déjà fait ou pour rafraîchir
       Provider.of<MyBooksProvider>(context, listen: false).fetchUserBooks(userId);
-      // On peut aussi précharger les favoris ici si on veut
       Provider.of<FavoriteBooksProvider>(context, listen: false).fetchFavorites(userId);
 
-      // Fetch pages read this month from DB
       final pages = await _dbHelper.getPagesReadThisMonth(userId);
       if (mounted) {
         setState(() {
@@ -60,15 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (thumbnail.startsWith('http')) {
       return NetworkImage(thumbnail);
     }
-    // Pour les images locales ou fichiers, ajustez selon votre logique
-    // Ici on suppose que c'est une URL ou un asset par défaut pour simplifier,
-    // mais si vous gérez des fichiers locaux :
-    // return FileImage(File(thumbnail));
     return const AssetImage('assets/images/test.jpg');
   }
 
   void _navigateToDetails(Book book) {
-    // Naviguer vers les détails du livre
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -79,24 +69,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Récupérer les livres depuis le provider
     final myBooksProvider = Provider.of<MyBooksProvider>(context);
     final allBooks = myBooksProvider.myBooks;
     
-    // On inverse pour avoir les plus récents en premier, comme dans MyBooksScreen
     final recentBooks = allBooks.reversed.take(3).toList();
 
-    // Calcul des statistiques réelles
     final finishedCount = allBooks.where((b) => b.status == 'Finished').length;
     final readingCount = allBooks.where((b) => b.status == 'Reading').length;
     final toReadCount = allBooks.where((b) => b.status == 'Not Read' || b.status == 'To Read').length;
     final totalCount = allBooks.length;
 
-    // --- CALCUL OBJECTIF 300 PAGES ---
-    // Utiliser les pages lues ce mois-ci depuis la DB au lieu de la somme totale
     final int monthlyGoal = 300;
     
-    // Pourcentage de l'objectif (max 1.0)
     double progressPercent = _pagesReadThisMonth / monthlyGoal;
     if (progressPercent > 1.0) progressPercent = 1.0;
 
@@ -106,8 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // 1. CALENDRIER (Placeholder si vous ne l'avez pas encore intégré)
-          // const CalendarWidget(),
           const SizedBox(height: 20),
 
           Padding(
@@ -116,21 +98,16 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                // --- A. CARTE PROGRESSION (Noire) ---
                 _buildProgressCard(progressPercent, _pagesReadThisMonth, monthlyGoal),
 
                 const SizedBox(height: 30),
 
-                // ==========================================================
-                // --- SECTION STATISTIQUES (FL_CHART) ---
-                // ==========================================================
                 const Text(
                   "Statistics",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 15),
 
-                // 1. Pie Chart (Statut de lecture)
                 ReadingStatusChart(
                   finished: finishedCount,
                   reading: readingCount,
@@ -138,17 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 15),
 
-                // 2. Bar Chart (Catégories)
                 CategoryBarChart(books: allBooks),
                 const SizedBox(height: 15),
 
-                // 3. Line Chart (Progression mensuelle)
                 const MonthlyProgressChart(),
 
                 const SizedBox(height: 30),
-                // ==========================================================
 
-                // --- C. OVERVIEW HEADER ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -158,7 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        // Redirige aussi vers "My Books" (index 1)
                         widget.onTabChange(1);
                       },
                       child: Text(
@@ -171,7 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 10),
 
-                // --- CARTES CATÉGORIES (Thème Gris/Noir) ---
                 Row(
                   children: [
                     Expanded(child: _buildCategoryCard("Total Books", "$totalCount Books", Icons.collections_bookmark_outlined)),
@@ -190,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 40),
 
-                // --- D. RECENTLY ADDED (Nouveau) ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -201,7 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
                      IconButton(
                       icon: const Icon(Icons.tune),
                       onPressed: () {
-                         // Action filtre ou navigation vers My Books
                          widget.onTabChange(1);
                       },
                     ),
@@ -220,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: recentBooks.length,
                         itemBuilder: (context, index) {
                           final book = recentBooks[index];
-                          // Vérifier si le livre est déjà dans les favoris
                           final isFavorite = favoritesProvider.favorites.any((b) => b.id == book.id);
                           return _buildRecentBookItem(context, book, isFavorite);
                         },
@@ -301,7 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            // --- BOUTON FAVORIS ---
             IconButton(
               onPressed: () {
                 final provider = Provider.of<FavoriteBooksProvider>(context, listen: false);
@@ -329,13 +296,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- WIDGET : CARTE NOIRE ---
   Widget _buildProgressCard(double percent, int pagesRead, int goal) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.black, // Fond Noir
+        color: Colors.black, 
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -371,12 +337,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    // Redirige vers "My Books"
                     widget.onTabChange(1);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: Colors.black, // Texte noir
+                    foregroundColor: Colors.black, 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
@@ -407,12 +372,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- WIDGET : CARTE CATÉGORIE ---
   Widget _buildCategoryCard(String title, String count, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA), // Gris Clair
+        color: const Color(0xFFF5F7FA), 
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -433,11 +397,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ==============================================================================
-// WIDGETS GRAPHIQUES (FL_CHART) - Placé ici pour faciliter le copier-coller
-// ==============================================================================
-
-// --- 1. PIE CHART : STATUT ---
 class ReadingStatusChart extends StatelessWidget {
   final int finished;
   final int reading;
@@ -449,7 +408,6 @@ class ReadingStatusChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Si tout est à zéro, on affiche un graphique vide ou par défaut
     bool isEmpty = (finished == 0 && reading == 0 && toRead == 0);
 
     return Container(
@@ -516,7 +474,6 @@ class ReadingStatusChart extends StatelessWidget {
   }
 }
 
-// --- 2. BAR CHART : CATÉGORIES ---
 class CategoryBarChart extends StatelessWidget {
   final List<Book> books;
   const CategoryBarChart({super.key, required this.books});
@@ -525,14 +482,12 @@ class CategoryBarChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Compter les catégories
     Map<String, int> counts = {};
     for (var book in books) {
       String cat = (book.category.isEmpty) ? "General" : book.category;
       counts[cat] = (counts[cat] ?? 0) + 1;
     }
     
-    // Prendre le top 5
     var sortedKeys = counts.keys.toList()..sort((a,b) => counts[b]!.compareTo(counts[a]!));
     var top5 = sortedKeys.take(5).toList();
 
@@ -572,7 +527,6 @@ class CategoryBarChart extends StatelessWidget {
                         int index = value.toInt();
                         if (index < 0 || index >= top5.length) return const SizedBox();
                         String text = top5[index];
-                        // Shorten text
                         if (text.length > 4) text = text.substring(0, 3);
                         
                         TextStyle style = TextStyle(color: isDark ? AppThemes.textSecondary : Colors.grey, fontWeight: FontWeight.bold, fontSize: 10);
@@ -609,7 +563,6 @@ class CategoryBarChart extends StatelessWidget {
   }
 }
 
-// --- 3. LINE CHART : PROGRESSION MENSUELLE ---
 class MonthlyProgressChart extends StatefulWidget {
   const MonthlyProgressChart({super.key});
 
@@ -621,7 +574,7 @@ class _MonthlyProgressChartState extends State<MonthlyProgressChart> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<FlSpot> _spots = [];
   bool _isLoading = true;
-  List<String> _monthsLabels = []; // Stocker les labels des mois
+  List<String> _monthsLabels = []; 
 
   @override
   void initState() {
@@ -640,18 +593,14 @@ class _MonthlyProgressChartState extends State<MonthlyProgressChart> {
         List<FlSpot> spots = [];
         List<String> labels = [];
         
-        // Obtenir les 6 derniers mois dynamiquement
         final now = DateTime.now();
         for (int i = 5; i >= 0; i--) {
             final date = DateTime(now.year, now.month - i, 1);
             final key = DateFormat('yyyy-MM').format(date);
-            final monthName = DateFormat('MMM').format(date); // Jan, Feb...
+            final monthName = DateFormat('MMM').format(date); 
             
             double value = (stats[key] ?? 0).toDouble();
             
-            // Si on veut une courbe un peu plus jolie quand c'est vide, on peut laisser 0
-            // ou simuler si c'est pour de la démo pure (mais ici on veut fonctionnel)
-            // Pour l'instant, on affiche les vraies données.
             
             spots.add(FlSpot((5-i).toDouble(), value));
             labels.add(monthName);
@@ -704,7 +653,6 @@ class _MonthlyProgressChartState extends State<MonthlyProgressChart> {
                       getTitlesWidget: (value, meta) {
                         int index = value.toInt();
                         if (index < 0 || index >= _monthsLabels.length) return const SizedBox();
-                        // Afficher un label sur 2 pour ne pas surcharger si écran petit
                         if (index % 2 != 0 && _monthsLabels.length > 4) return const SizedBox(); 
                         
                         TextStyle style = TextStyle(color: isDark ? AppThemes.textSecondary : Colors.grey, fontSize: 10, fontWeight: FontWeight.bold);

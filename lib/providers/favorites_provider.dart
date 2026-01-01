@@ -7,9 +7,8 @@ class FavoriteBooksProvider with ChangeNotifier {
   List<Book> _favorites = [];
   bool _isLoading = false; 
 
-  // Getter used in UI
   List<Book> get favorites => _favorites;
-  List<Book> get favoriteBooks => _favorites; // Alias for compatibility
+  List<Book> get favoriteBooks => _favorites;
   bool get isLoading => _isLoading;
 
   void setCurrentUserId(int userId) {

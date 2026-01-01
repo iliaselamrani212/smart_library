@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:smart_library/models/books_model.dart';
 import 'package:smart_library/providers/user_provider.dart';
 import 'package:smart_library/providers/my_books_provider.dart';
-import 'package:intl/intl.dart'; // Importer pour le formatage de la date
-import 'package:smart_library/pages/edit_book_screen.dart'; // Importer l'écran d'édition
+import 'package:intl/intl.dart';
+import 'package:smart_library/pages/edit_book_screen.dart';
 import 'package:smart_library/theme/app_themes.dart';
 import 'package:smart_library/pages/MyQuotesScreen.dart';
 
@@ -30,13 +30,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   late TextEditingController _pageController;
   int _bookIndex = -1;
 
-  // We need to keep a local copy of the book to display updates
   Book? _displayedBook;
 
   @override
   void initState() {
     super.initState();
-    _displayedBook = widget.book; // Initialize with the passed book
+    _displayedBook = widget.book;
     _totalPages = _displayedBook?.totalPages ?? 0;
     _pageController = TextEditingController(text: "0");
 
@@ -144,7 +143,7 @@ void _saveProgress() {
                 leading: const Icon(Icons.edit, color: Colors.blue),
                 title: const Text("Modify"),
                 onTap: () async {
-                  Navigator.pop(context); // Close modal before navigation
+                  Navigator.pop(context);
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => EditBookScreen(book: _displayedBook!)),
@@ -172,7 +171,7 @@ void _saveProgress() {
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text("Delete", style: TextStyle(color: Colors.red)),
                 onTap: () async {
-                  Navigator.pop(context); // Close modal before deletion
+                  Navigator.pop(context);
                   final bookId = _displayedBook!.id;
                   final userId = Provider.of<UserProvider>(context, listen: false).currentUser?.usrId;
                   if (userId != null) {

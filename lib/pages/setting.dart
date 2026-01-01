@@ -18,11 +18,9 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    // Access the current user data
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.currentUser;
     
-    // Access the theme provider
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return SingleChildScrollView(
@@ -30,12 +28,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---------- PROFIL SECTION (Real Data) ----------
           _buildProfileSection(user?.fullName ?? 'Guest', user?.email ?? 'No email'),
 
           const SizedBox(height: 30),
 
-          // ---------- GENERAL SETTINGS ----------
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 12),
             child: Builder(
@@ -57,7 +53,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () {},
           ),
           
-          // ---------- HISTORY BUTTON HERE ----------
           _buildSettingItem(
             icon: Icons.history_rounded,
             title: 'Reading History',
@@ -71,7 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
-          // ---------- PREFERENCES ----------
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 12),
             child: Builder(
@@ -97,7 +91,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 30),
 
-          // ---------- LOGOUT BUTTON ----------
           _buildLogoutButton(context),
 
           const SizedBox(height: 80),
@@ -106,7 +99,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- WIDGET : SECTION PROFIL (Updated with dynamic data) ---
   Widget _buildProfileSection(String name, String email) {
     return Builder(
       builder: (context) {
@@ -121,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               MaterialPageRoute(builder: (context) => const EditProfileScreen()),
             );
             if (result == true) {
-              setState(() {}); // Refresh the profile section
+              setState(() {}); 
             }
           },
           child: Container(
@@ -180,7 +172,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- LOGOUT BUTTON COMPONENT ---
   Widget _buildLogoutButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -214,7 +205,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // (Keep your _buildSettingItem and _buildSettingSwitch methods exactly as they were)
   Widget _buildSettingItem({required IconData icon, required String title, Widget? trailing, required VoidCallback onTap}) {
     return Builder(
       builder: (context) {
@@ -297,7 +287,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Helper method to get profile image
   ImageProvider<Object> _getProfileImage(String? profilePicturePath) {
     if (profilePicturePath != null && profilePicturePath.isNotEmpty) {
       final file = File(profilePicturePath);

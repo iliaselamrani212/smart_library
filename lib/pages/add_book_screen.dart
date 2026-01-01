@@ -23,7 +23,6 @@ class AddBookScreen extends StatefulWidget {
 class _AddBookScreenState extends State<AddBookScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Text Controllers
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _authorCont = TextEditingController();
   final TextEditingController _isbnController = TextEditingController();
@@ -31,14 +30,11 @@ class _AddBookScreenState extends State<AddBookScreen> {
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   
-  // 1. ADDED: Controller for Pages
   final TextEditingController _pagesController = TextEditingController(); 
 
-  // State Variables
   dynamic _selectedImage; 
   bool _isFavorite = false;
 
-  // --- 1. SCAN ISBN & FETCH FROM API ---
   Future<void> _scanISBN() async {
     final result = await Navigator.push(
       context,
@@ -63,7 +59,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _categoryController.text = (book['categories'] as List?)?.join(', ') ?? 'General';
               _noteController.text = book['description'] ?? '';
               
-              // 2. ADDED: Fetch page count from API
               _pagesController.text = book['pageCount']?.toString() ?? '';
 
               if (book['imageLinks'] != null && book['imageLinks']['thumbnail'] != null) {
@@ -81,7 +76,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
     }
   }
 
-  // --- 2. PICK IMAGE ---
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     showModalBottomSheet(
@@ -114,7 +108,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
     );
   }
 
-  // --- 3. SAVE TO DATABASE ---
   void _saveBook() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -140,9 +133,8 @@ class _AddBookScreenState extends State<AddBookScreen> {
           thumbnail: imagePath,
           description: _noteController.text,
           category: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
-          // 3. ADDED: Save total pages (default to 0 if empty) and initialize progress
           totalPages: int.tryParse(_pagesController.text) ?? 0, 
-          pages: 0, // Current progress starts at 0
+          pages: 0, 
         );
 
         await Provider.of<MyBooksProvider>(context, listen: false).addBook(newBook, userId);
@@ -190,7 +182,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Scan Button
               GestureDetector(
                 onTap: _scanISBN,
                 child: Container(
@@ -212,7 +203,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
               ),
               const SizedBox(height: 30),
               
-              // Cover Image Preview
               Center(
                 child: GestureDetector(
                   onTap: _pickImage,
@@ -240,7 +230,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _buildTextField(_authorCont, "Author(s)", Icons.person_outline, isDark),
               
               const SizedBox(height: 15),
-              // 4. ADDED: Modified Row to include Pages
               Row(
                 children: [
                   Expanded(
@@ -272,8 +261,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
               _buildTextField(_noteController, "Description...", Icons.notes, isDark, maxLines: 3, isRequired: false),
 
               const SizedBox(height: 15),
-              // --- Added: Page Number Field ---
-              // This field allows the user to manually input the page number if it is not fetched automatically.
               _buildLabel("Page Number", isDark),
               _buildTextField(
                 _pagesController,
@@ -281,7 +268,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
                 Icons.format_list_numbered,
                 isDark,
                 isNumber: true,
-                isRequired: false, // Optional field
+                isRequired: false, 
               ),
 
               const SizedBox(height: 20),
@@ -311,7 +298,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
     );
   }
 
-  // --- Helper to handle both URL and File for decoration ---
   DecorationImage _buildDecorationImage() {
     if (_selectedImage is String) {
       return DecorationImage(image: NetworkImage(_selectedImage), fit: BoxFit.cover);
@@ -344,7 +330,6 @@ class _AddBookScreenState extends State<AddBookScreen> {
   }
 }
 
-// --- SCANNER SCREEN ---
 class BarcodeScannerScreen extends StatelessWidget {
   const BarcodeScannerScreen({super.key});
 
@@ -364,7 +349,7 @@ class BarcodeScannerScreen extends StatelessWidget {
         onDetect: (capture) {
           final barcode = capture.barcodes.first;
           if (barcode.rawValue != null) {
-            Navigator.pop(context, barcode.rawValue); // Return the scanned ISBN.
+            Navigator.pop(context, barcode.rawValue); 
           }
         },
       ),

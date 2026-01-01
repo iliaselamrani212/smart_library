@@ -7,9 +7,9 @@ String usersToMap(Users data) => json.encode(data.toMap());
 class Users {
   final int? usrId;
   final String? fullName;
-  final String email; // Now the unique identifier
+  final String email;
   final String password;
-  final String? profilePicture; // Added for profile picture path
+  final String? profilePicture;
 
   Users({
     this.usrId,
@@ -19,7 +19,7 @@ class Users {
     this.profilePicture,
   });
 
-  // copyWith allows you to update parts of the user object easily
+
   Users copyWith({
     int? usrId,
     String? fullName,
@@ -39,7 +39,7 @@ class Users {
         usrId: json["usrId"],
         fullName: json["fullName"],
         email: json["email"], 
-        password: json["usrPassword"], // Matches your database column name
+        password: json["usrPassword"], 
         profilePicture: json["profilePicture"],
       );
 

@@ -37,7 +37,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
     
-    // Initialize _selectedImage with current profile picture if it exists
     if (user?.profilePicture != null && user!.profilePicture!.isNotEmpty) {
       final file = File(user.profilePicture!);
       if (file.existsSync()) {
@@ -101,7 +100,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      // Prepare updated user data
       String newPassword = currentUser.password;
       if (_passwordController.text.isNotEmpty) {
         if (_passwordController.text != _confirmPasswordController.text) {
@@ -111,7 +109,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         newPassword = _passwordController.text;
       }
 
-      // Handle profile picture
       String? profilePicturePath = currentUser.profilePicture;
       if (_selectedImage is File && _selectedImage.path != currentUser.profilePicture) {
         try {
@@ -137,10 +134,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         profilePicture: profilePicturePath,
       );
 
-      // Update user in database
       await _dbHelper.updateUser(updatedUser);
 
-      // Update provider
       userProvider.setUser(updatedUser);
 
       _showSnackBar('Profile updated successfully!', Colors.green);
@@ -184,7 +179,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // --- PROFILE PICTURE ---
               GestureDetector(
                 onTap: _pickImage,
                 child: Stack(
@@ -223,7 +217,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 40),
 
-              // --- NAME FIELD ---
               _buildTextField(
                 controller: _nameController,
                 label: 'Full Name',
@@ -233,7 +226,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // --- EMAIL FIELD ---
               _buildTextField(
                 controller: _emailController,
                 label: 'Email',
@@ -249,14 +241,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 30),
 
-              // --- PASSWORD SECTION ---
               Text(
                 'Change Password (Optional)',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black),
               ),
               const SizedBox(height: 15),
 
-              // --- NEW PASSWORD ---
               _buildPasswordField(
                 controller: _passwordController,
                 label: 'New Password',
@@ -267,7 +257,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // --- CONFIRM PASSWORD ---
               _buildPasswordField(
                 controller: _confirmPasswordController,
                 label: 'Confirm Password',
@@ -278,7 +267,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 40),
 
-              // --- SAVE BUTTON ---
               SizedBox(
                 width: double.infinity,
                 height: 55,

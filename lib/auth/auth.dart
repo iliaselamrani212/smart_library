@@ -15,7 +15,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // 1. Define the GlobalKey for validation
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController emailController = TextEditingController();
@@ -33,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      // Allow scrolling when the keyboard appears
       resizeToAvoidBottomInset: true, 
       backgroundColor: isDarkMode ? const Color(0xFF0F0F0F) : Colors.white,
       body: SafeArea(
@@ -59,22 +57,21 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 48),
 
-              // 2. Wrap input fields in a Form widget
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     InputField(
-                      hintText: 'Email', // Changed to Username as per your UserProvider
+                      hintText: 'Email', 
                       controller: emailController,
-                      validator: Validators.validateUserName, // Applied validator
+                      validator: Validators.validateUserName, 
                     ),
                     SizedBox(height: 32),
                     InputField(
                       hintText: 'Password',
                       controller: passwordController,
                       obscureText: !passwordVisible,
-                      validator: Validators.validatePassword, // Applied validator
+                      validator: Validators.validatePassword, 
                       suffixIcon: IconButton(
                         color: textGrey,
                         icon: Icon(passwordVisible
@@ -93,10 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 textValue: 'Login',
                 textColor: Colors.white,
                 onPressed: () async {
-                  // 3. Trigger Form Validation
                   if (_formKey.currentState!.validate()) {
                     
-                    // 4. Call Login from Provider
                     final userProvider = Provider.of<UserProvider>(context, listen: false);
                     bool success = await userProvider.login(
                       emailController.text, 
@@ -104,14 +99,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
 
                     if (success) {
-                      // Login success: Navigate to Layout
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (context) => Layout()),
                         (route) => false,
                       );
                     } else {
-                      // Login fail: Show error
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text("Invalid Username or Password"),
@@ -137,7 +130,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 textValue: 'Login with Google',
                 textColor: textBlack,
                 onPressed: () {
-                  // Logic for Google login would go here
                 },
               ),
               SizedBox(height: 50),
@@ -180,7 +172,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // 1. Key to manage form validation
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController nameController = TextEditingController();
@@ -225,7 +216,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 48),
               
-              // 2. Form wrapper for validation
               Form(
                 key: _formKey,
                 child: Column(
@@ -258,7 +248,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: 'Confirm Password',
                       controller: confirmPasswordController,
                       obscureText: !passwordVisible,
-                      // Pass both current value and original password to compare
                       validator: (value) => Validators.validateConfirmPassword(value, passwordController.text),
                       suffixIcon: IconButton(
                         color: textGrey,
@@ -279,21 +268,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 32),
 
-              // 3. Register Button with Logic
               CustomPrimaryButton(
                 buttonColor: primaryBlue,
                 textValue: 'Register',
                 textColor: Colors.white,
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Create user object matching your updated model
                     final newUser = Users(
                       fullName: nameController.text,
                       email: emailController.text,
                       password: passwordController.text,
                     );
 
-                    // Call Provider to save to DB
                     final userProvider = Provider.of<UserProvider>(context, listen: false);
                     bool success = await userProvider.register(newUser);
 
@@ -305,11 +291,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       );
 
-                      // --- CHANGE THIS LINE FOR EXPLICIT NAVIGATION ---
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (context) => LoginScreen()),
-                        (route) => false, // This clears the navigation stack
+                        (route) => false, 
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -331,7 +316,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onTap: () => Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (context) => LoginScreen()),
-                        (route) => false, // This clears the navigation stack
+                        (route) => false, 
                       ),
                     child: Text('Login', style: regular16pt.copyWith(color: primaryBlue)),
                   ),

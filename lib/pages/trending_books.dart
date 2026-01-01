@@ -10,11 +10,11 @@ class TrendingBooksWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardColor = Theme.of(context).brightness == Brightness.dark
-        ? Color(0xFF2B2B2B) // Dark theme
-        : Colors.blue[50]; // Light theme
+        ? Color(0xFF2B2B2B)
+        : Colors.blue[50];
 
     return FutureBuilder<List<Book>>(
-      future: ApiService().fetchBooks('flutter+programming'), // Change query as needed (harry+potter, programming, data+science). Here only flutter related books are displayed.
+      future: ApiService().fetchBooks('flutter+programming'),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -39,7 +39,7 @@ class TrendingBooksWidget extends StatelessWidget {
                 onTap: (){
                   showDialog(
                     context: context,
-                    barrierColor: Colors.black.withOpacity(0.5), // background opacity
+                    barrierColor: Colors.black.withOpacity(0.5),
                     builder: (context) => ShowTrending(book: book),
                   );
                 },
@@ -57,7 +57,6 @@ class TrendingBooksWidget extends StatelessWidget {
   }
 }
 
-// show trending book detail
 class ShowTrending extends StatelessWidget {
   final Book book;
   const ShowTrending({super.key, required this.book});
@@ -70,7 +69,7 @@ class ShowTrending extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: currentTheme.brightness == Brightness.dark ? Colors.grey[850] : Colors.white, // Main dialog box color
+          color: currentTheme.brightness == Brightness.dark ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -104,7 +103,7 @@ class ShowTrending extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating, // Make it float
+                            behavior: SnackBarBehavior.floating,
                             margin: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
                             duration: Duration(seconds: 1),
                             content: Text('Book saved to favorites!',style: TextStyle(color: Colors.white),)

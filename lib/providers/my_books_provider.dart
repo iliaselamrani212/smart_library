@@ -4,8 +4,7 @@ import 'package:smart_library/models/books_model.dart';
 
 class MyBooksProvider with ChangeNotifier {
   List<Book> _myBooks = [];
-  List<String> _bookStates = []; // Parallel list for status
-  
+  List<String> _bookStates = [];
   bool _isLoading = false;
   final DatabaseHelper _dbHelper = DatabaseHelper();
 

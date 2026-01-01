@@ -69,9 +69,9 @@ class DatabaseHelper{
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       usrId INTEGER,
       bookId TEXT,
-      pageNumber INTEGER, -- Column for page number
-      noteText TEXT, -- Column for note text
-      date TEXT, -- Added column for date
+      pageNumber INTEGER, 
+      noteText TEXT, 
+      date TEXT, 
       content TEXT,
       createdAt TEXT,
       FOREIGN KEY (usrId) REFERENCES users(usrId)
@@ -256,11 +256,11 @@ class DatabaseHelper{
     );
   }
 
-  // --- NEW: Method to update a book's details ---
+
   Future<int> updateUserBook(Book book, int usrId) async {
     final Database db = await initDB();
     final Map<String, dynamic> bookMap = book.toMap();
-    // usrId is needed to ensure we update the book for the correct user
+
     return await db.update(
       "mybooks",
       bookMap,
@@ -400,7 +400,6 @@ class DatabaseHelper{
       }
       return stats;
     } catch (e) {
-      // Return empty if table doesn't exist yet or other error
       print("Error fetching monthly stats: $e");
       return {};
     }

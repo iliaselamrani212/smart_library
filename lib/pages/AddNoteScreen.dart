@@ -122,10 +122,9 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       if (!mounted) return;
       Navigator.pop(context, true);
 
-      // Notify listeners to refresh the UI immediately
       final quotesProvider = Provider.of<MyBooksProvider>(context, listen: false);
       quotesProvider.fetchUserBooks(userId).then((_) {
-        setState(() {}); // Ensure the UI updates immediately after saving
+        setState(() {}); 
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,20 +136,17 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
   Future<void> _captureAndExtractText() async {
     final picker = ImagePicker();
 
-    // 1. PRENDRE LA PHOTO
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
-      // 2. RECADRER LA PHOTO (CROP)
       CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
-        // Configuration Android pour éviter les boutons cachés
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Recadrer',
-            toolbarColor: Colors.black,       // Fond noir
-            toolbarWidgetColor: Colors.white, // Icones blanches
-            statusBarColor: Colors.black,     // Barre d'état noire (IMPORTANT)
+            toolbarColor: Colors.black,       
+            toolbarWidgetColor: Colors.white, 
+            statusBarColor: Colors.black,     
             backgroundColor: Colors.black,
             activeControlsWidgetColor: Colors.blue,
             initAspectRatio: CropAspectRatioPreset.original,
@@ -163,10 +159,8 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
         ],
       );
 
-      // Si l'utilisateur annule le crop
       if (croppedFile == null) return;
 
-      // 3. OCR SUR L'IMAGE RECADRÉE
       final inputImage = InputImage.fromFilePath(croppedFile.path);
       final textRecognizer = TextRecognizer();
 
@@ -196,7 +190,6 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Utilisation de Consumer pour éviter les erreurs de rebuild si le provider change
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Consumer<MyBooksProvider>(
       builder: (context, myBooksProvider, child) {
@@ -234,7 +227,6 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                 Text("Book Details", style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppThemes.textSecondary : Colors.grey)),
                 const SizedBox(height: 15),
 
-                // --- DROPDOWN MENU ---
                 LayoutBuilder(builder: (context, constraints) {
                   return DropdownMenu<Book>(
                     controller: _bookSearchController,
