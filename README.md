@@ -1,7 +1,7 @@
 **SmartLibrary** — Gestion de Livres + Scan ISBN
 SmartLibrary is a Flutter app scaffold adapted from the original Book Hive project. It focuses on managing a personal or school library with features such as adding books (manual or via ISBN scan), organizing by category, tracking reading status, and displaying simple statistics.
 
-Getting started 
+Getting started  
 ---------------  
 1. Install Flutter and required SDKs.
 2. From the project root run:  
