@@ -8,7 +8,7 @@ Getting started
  
 ```powershell  
 flutter pub get  
-flutter run
+flutter run 
 ```
 Notes & next steps
 ------------------
