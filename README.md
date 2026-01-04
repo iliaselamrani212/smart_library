@@ -3,7 +3,7 @@ SmartLibrary is a Flutter app scaffold adapted from the original Book Hive proje
 
 Getting started  
 ---------------   
-1. Install Flutter and required SDKs. 
+1. Install Flutter and required SDKs.  
 2. From the project root run:  
  
 ```powershell  
