@@ -9,7 +9,7 @@ Getting started
 ```powershell  
 flutter pub get    
 flutter run  
-```
+``` 
 Notes & next steps
 ------------------
 - If you plan to keep using launcher icons or images, add new files under `assets/` and update `pubspec.yaml` accordingly.
