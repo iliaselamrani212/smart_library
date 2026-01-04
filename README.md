@@ -7,7 +7,7 @@ Getting started
 2. From the project root run:  
  
 ```powershell  
-flutter pub get  
+flutter pub get   
 flutter run 
 ```
 Notes & next steps
